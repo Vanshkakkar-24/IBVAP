@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Face Detection & Live Analysis Hub</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-primary: #0a0f1d;
+      --bg-card: #131b2e;
+      --bg-card-hover: #19243d;
+      --border-color: #263352;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --accent-success: #10b981;
+      --accent-warning: #f59e0b;
+      --accent-danger: #ef4444;
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --text-dim: #6b7280;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: rgba(19, 27, 46, 0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border-color);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1.2rem;
+    }
+
+    .brand-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-subtitle {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+
+    .badge-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: 500;
+      background: #1e293b;
+      border: 1px solid var(--border-color);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-success);
+    }
+
+    .status-dot.active {
+      box-shadow: 0 0 8px var(--accent-success);
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 0.5rem;
+      background: var(--bg-card);
+      padding: 0.35rem;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+    }
+
+    .nav-tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 0.5rem 1.2rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .nav-tab-btn:hover {
+      color: var(--text-main);
+    }
+
+    .nav-tab-btn.active {
+      background: var(--accent);
+      color: white;
+    }
+
+    main {
+      flex: 1;
+      padding: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    /* Grid Layout for Live Camera */
+    .view-grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 1024px) {
+      .view-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 1.25rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .card-title {
+      font-size: 1.05rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Video Frame Container */
+    .video-viewport {
+      position: relative;
+      background: #000;
+      border-radius: 10px;
+      overflow: hidden;
+      aspect-ratio: 16 / 9;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid var(--border-color);
+    }
+
+    .video-viewport img,
+    .video-viewport video,
+    .video-viewport canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .viewport-overlay {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      display: flex;
+      gap: 0.5rem;
+      z-index: 10;
+    }
+
+    .hud-pill {
+      background: rgba(10, 15, 29, 0.75);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 0.35rem 0.75rem;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: #38bdf8;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 2rem;
+    }
+
+    .empty-icon {
+      font-size: 3rem;
+      margin-bottom: 0.5rem;
+      opacity: 0.6;
+    }
+
+    /* Controls */
+    .control-group {
+      margin-bottom: 1.25rem;
+    }
+
+    .control-label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 0.4rem;
+    }
+
+    .select, input[type="text"] {
+      width: 100%;
+      background: #0f1626;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.6rem 0.8rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    .select:focus, input[type="text"]:focus {
+      border-color: var(--accent);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.2rem;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+      width: 100%;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-danger {
+      background: var(--accent-danger);
+      color: white;
+    }
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .btn-secondary {
+      background: #1e293b;
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+    }
+    .btn-secondary:hover {
+      background: #334155;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .stat-box {
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      padding: 0.85rem;
+      border-radius: 8px;
+    }
+
+    .stat-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+
+    .stat-title {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      margin-top: 0.2rem;
+    }
+
+    /* Video Upload Area */
+    .dropzone {
+      border: 2px dashed var(--border-color);
+      border-radius: 12px;
+      padding: 3rem 2rem;
+      text-align: center;
+      background: rgba(19, 27, 46, 0.5);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--accent);
+      background: rgba(59, 130, 246, 0.05);
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 8px;
+      background: #1e293b;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #3b82f6, #10b981);
+      transition: width 0.3s ease;
+    }
+
+    .faces-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+    }
+
+    .faces-table th {
+      text-align: left;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border-color);
+      padding: 0.5rem;
+      font-weight: 500;
+    }
+
+    .faces-table td {
+      padding: 0.5rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .quality-bar {
+      display: inline-block;
+      height: 6px;
+      border-radius: 3px;
+      background: #10b981;
+    }
+
+    .toggle-group {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.8rem;
+    }
+
+    .toggle-group label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    input[type="checkbox"] {
+      cursor: pointer;
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent);
+    }
+
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .slider-container input[type="range"] {
+      flex: 1;
+      accent-color: var(--accent);
+    }
+
+    .slider-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      min-width: 40px;
+    }
+
+    footer {
+      border-top: 1px solid var(--border-color);
+      padding: 1rem 2rem;
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-icon">⚡</div>
+      <div>
+        <h1 class="brand-title">Face Detection Module</h1>
+        <p class="brand-subtitle">Real-time YuNet & Custom Deep Learning Inference</p>
+      </div>
+    </div>
+
+    <div class="nav-tabs">
+      <button class="nav-tab-btn active" onclick="switchTab('webcam')">📹 Live Webcam Detection</button>
+      <button class="nav-tab-btn" onclick="switchTab('video')">📁 Upload Video Detection</button>
+      <button class="nav-tab-btn" onclick="switchTab('training')">🧠 Model & Training</button>
+    </div>
+
+    <div class="badge-status">
+      <span class="status-dot active"></span>
+      <span id="backend-status">Backend Active</span>
+    </div>
+  </header>
+
+  <main>
+    <!-- TAB 1: LIVE WEBCAM (PRIMARY FOCUS) -->
+    <div id="tab-webcam" class="tab-content active">
+      <div class="view-grid">
+        <!-- Main Viewport -->
+        <div class="card">
+          <div class="card-title">
+            <span>Live Camera Feed</span>
+            <div style="display: flex; gap: 0.5rem;">
+              <button class="btn btn-secondary" style="padding: 0.35rem 0.8rem; font-size: 0.8rem;" onclick="refreshCameras()">🔄 Scan Cameras</button>
+              <button class="btn btn-secondary" style="padding: 0.35rem 0.8rem; font-size: 0.8rem;" onclick="captureSnapshot()">📸 Snapshot</button>
+            </div>
+          </div>
+
+          <div class="video-viewport" id="viewport-container">
+            <div class="viewport-overlay">
+              <div class="hud-pill" id="hud-fps">FPS: --</div>
+              <div class="hud-pill" id="hud-faces">Faces: 0</div>
+              <div class="hud-pill" id="hud-latency">Latency: -- ms</div>
+            </div>
+
+            <!-- Server MJPEG Stream -->
+            <img id="mjpeg-stream" src="" alt="Webcam Stream" style="display: none;" />
+            <!-- Client Browser Camera fallback -->
+            <video id="client-video" autoplay playsinline muted style="display: none;"></video>
+            <canvas id="client-canvas" style="display: none;"></canvas>
+
+            <!-- Idle Empty State -->
+            <div id="stream-placeholder" class="empty-state">
+              <div class="empty-icon">📷</div>
+              <h3>Webcam Feed Stopped</h3>
+              <p style="margin-top: 0.5rem; font-size: 0.9rem;">Select a camera source and click "Start Live Stream" below.</p>
+            </div>
+          </div>
+
+          <!-- Face Detections Table in current frame -->
+          <div style="margin-top: 1.5rem;">
+            <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);">Real-time Face Telemetry</h4>
+            <div style="overflow-x: auto;">
+              <table class="faces-table">
+                <thead>
+                  <tr>
+                    <th>Face ID</th>
+                    <th>Track ID</th>
+                    <th>Confidence</th>
+                    <th>Sharpness (Blur)</th>
+                    <th>Brightness</th>
+                    <th>Quality Score</th>
+                  </tr>
+                </thead>
+                <tbody id="faces-tbody">
+                  <tr>
+                    <td colspan="6" style="text-align: center; color: var(--text-dim); padding: 1rem;">No faces detected in current frame</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls & Metrics Sidebar -->
+        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+          <!-- Telemetry Stats -->
+          <div class="card">
+            <h3 class="card-title">Live Performance</h3>
+            <div class="stats-grid">
+              <div class="stat-box">
+                <div class="stat-value" id="stat-face-count">0</div>
+                <div class="stat-title">Faces Detected</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-value" id="stat-fps">0.0</div>
+                <div class="stat-title">Processing FPS</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-value" id="stat-conf">0.00</div>
+                <div class="stat-title">Avg Confidence</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-value" id="stat-quality">0.00</div>
+                <div class="stat-title">Avg Quality Score</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Camera Stream Controls -->
+          <div class="card">
+            <h3 class="card-title">Stream Configuration</h3>
+
+            <div class="control-group">
+              <label class="control-label">Capture Method</label>
+              <select id="camera-mode" class="select" onchange="onModeChange()">
+                <option value="server">Server Hardware Webcam (DirectShow/OpenCV)</option>
+                <option value="browser">Browser Client Camera (WebRTC API)</option>
+              </select>
+            </div>
+
+            <div class="control-group" id="server-camera-select-group">
+              <label class="control-label">Camera Index</label>
+              <select id="camera-index-select" class="select">
+                <option value="0">Camera 0 (Default)</option>
+              </select>
+            </div>
+
+            <div class="control-group">
+              <label class="control-label">Confidence Threshold</label>
+              <div class="slider-container">
+                <input type="range" id="conf-slider" min="0.1" max="0.95" step="0.05" value="0.65" oninput="updateConf(this.value)" />
+                <span class="slider-val" id="conf-val">0.65</span>
+              </div>
+            </div>
+
+            <div class="toggle-group">
+              <label for="toggle-tracking">Enable IoU Tracking</label>
+              <input type="checkbox" id="toggle-tracking" checked />
+            </div>
+
+            <div class="toggle-group">
+              <label for="toggle-landmarks">Draw 5 Face Landmarks</label>
+              <input type="checkbox" id="toggle-landmarks" checked />
+            </div>
+
+            <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
+              <button id="btn-start-stream" class="btn btn-primary" onclick="startStream()">▶ Start Live Stream</button>
+              <button id="btn-stop-stream" class="btn btn-danger" onclick="stopStream()" style="display: none;">⏹ Stop Stream</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: UPLOADED VIDEO -->
+    <div id="tab-video" class="tab-content">
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <h2 class="card-title">MP4 Video Processing</h2>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+          Upload any MP4 video file. The system will perform frame-by-frame face detection, evaluate quality, calculate tracks, and produce an annotated video and JSON analytics.
+        </p>
+
+        <div class="dropzone" id="dropzone" onclick="document.getElementById('video-input').click()">
+          <input type="file" id="video-input" accept=".mp4" style="display: none;" onchange="handleFileSelected(event)" />
+          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎬</div>
+          <h3>Click or Drag & Drop MP4 Video</h3>
+          <p style="color: var(--text-dim); font-size: 0.85rem; margin-top: 0.5rem;">Supported formats: .mp4 (H.264 recommended)</p>
+          <div id="selected-filename" style="margin-top: 1rem; font-weight: 600; color: var(--accent);"></div>
+        </div>
+
+        <div class="progress-bar-container" id="upload-progress-container">
+          <div class="progress-bar" id="upload-progress-bar"></div>
+        </div>
+
+        <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
+          <button id="btn-process-video" class="btn btn-primary" style="max-width: 200px;" onclick="uploadAndProcessVideo()" disabled>⚡ Process Video</button>
+        </div>
+      </div>
+
+      <!-- Results section -->
+      <div id="video-results" class="card" style="display: none;">
+        <h3 class="card-title">Processed Video Output</h3>
+
+        <div class="stats-grid" style="margin-bottom: 1.5rem;">
+          <div class="stat-box">
+            <div class="stat-value" id="vid-frames">0</div>
+            <div class="stat-title">Frames Processed</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="vid-faces">0</div>
+            <div class="stat-title">Total Faces Detected</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="vid-conf">0.00</div>
+            <div class="stat-title">Average Confidence</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" id="vid-quality">0.00</div>
+            <div class="stat-title">Average Quality Score</div>
+          </div>
+        </div>
+
+        <div class="video-viewport" style="max-height: 500px; margin-bottom: 1.5rem;">
+          <video id="result-video-player" controls style="max-height: 500px;"></video>
+        </div>
+
+        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+          <a id="download-video-btn" href="#" class="btn btn-primary" style="max-width: 250px;" download>⬇ Download Annotated MP4</a>
+          <button id="download-json-btn" class="btn btn-secondary" style="max-width: 250px;" onclick="downloadMetadataJson()">📋 Download JSON Metadata</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: MODEL & TRAINING -->
+    <div id="tab-training" class="tab-content">
+      <div class="card" style="margin-bottom: 1.5rem;">
+        <h2 class="card-title">Face Detection Model Architecture</h2>
+        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1rem;">
+          This system uses the high-speed <strong>YuNet</strong> ONNX face detector by default, and includes a full deep learning training pipeline (<code>app/training/train.py</code>) to train a custom face detection network from scratch or fine-tune with PyTorch and export to ONNX.
+        </p>
+
+        <div style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); display: grid; gap: 1.25rem; margin-top: 1rem;">
+          <div class="stat-box">
+            <h4 style="color: var(--accent); margin-bottom: 0.5rem;">Primary Model (YuNet)</h4>
+            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+              Location: <code>models/face_detection_yunet.onnx</code><br>
+              Framework: OpenCV FaceDetectorYN<br>
+              Inference: ONNX Runtime / OpenCV DNN<br>
+              Speed: ~40-60 FPS on standard CPU
+            </p>
+          </div>
+          <div class="stat-box">
+            <h4 style="color: var(--accent-success); margin-bottom: 0.5rem;">Custom Trained Model (TinyFaceNet)</h4>
+            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+              Location: <code>models/custom_face_detector.onnx</code><br>
+              Framework: PyTorch ➔ ONNX Export<br>
+              Outputs: Face Logits, BBox Regressor, 5 Landmarks<br>
+              Trained via: <code>python -m app.training.train</code>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 class="card-title">How To Train Your Custom Face Model</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
+          You can train a custom face detection neural network right from your terminal. Follow these steps:
+        </p>
+        <div style="background: #0f172a; padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #a5f3fc; line-height: 1.6;">
+          # 1. (Optional) Capture training samples directly from your webcam:<br>
+          python -m app.training.dataset --capture-webcam --samples 50<br><br>
+          # 2. Run the training loop (synthetic or captured samples):<br>
+          python -m app.training.train --epochs 10 --batch-size 16 --lr 0.001<br><br>
+          # 3. The script automatically evaluates mAP and exports the ONNX model to:<br>
+          #    models/custom_face_detector.onnx<br><br>
+          # 4. To run live webcam detection with the custom model:<br>
+          python -m app.detect_webcam --camera-index 0
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    Smart Face Detection System &bull; Production Architecture &bull; <a href="/docs" style="color: var(--accent); text-decoration: none;">Interactive Swagger API Docs</a>
+  </footer>
+
+  <script>
+    let isStreaming = false;
+    let streamMode = 'server';
+    let browserStream = null;
+    let browserInterval = null;
+    let currentMetadata = null;
+    let processedVideoData = null;
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.nav-tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+      if (tabId === 'webcam') {
+        document.querySelectorAll('.nav-tab-btn')[0].classList.add('active');
+        document.getElementById('tab-webcam').classList.add('active');
+      } else if (tabId === 'video') {
+        document.querySelectorAll('.nav-tab-btn')[1].classList.add('active');
+        document.getElementById('tab-video').classList.add('active');
+      } else if (tabId === 'training') {
+        document.querySelectorAll('.nav-tab-btn')[2].classList.add('active');
+        document.getElementById('tab-training').classList.add('active');
+      }
+    }
+
+    function onModeChange() {
+      const mode = document.getElementById('camera-mode').value;
+      streamMode = mode;
+      document.getElementById('server-camera-select-group').style.display = (mode === 'server') ? 'block' : 'none';
+      if (isStreaming) {
+        stopStream();
+      }
+    }
+
+    function updateConf(val) {
+      document.getElementById('conf-val').innerText = val;
+    }
+
+    async function refreshCameras() {
+      try {
+        const resp = await fetch('/api/face/cameras');
+        const data = await resp.json();
+        const select = document.getElementById('camera-index-select');
+        select.innerHTML = '';
+        if (data.cameras && data.cameras.length > 0) {
+          data.cameras.forEach(idx => {
+            const opt = document.createElement('option');
+            opt.value = idx;
+            opt.innerText = `Camera Index ${idx}${idx === 0 ? ' (Primary)' : ''}`;
+            select.appendChild(opt);
+          });
+        } else {
+          const opt = document.createElement('option');
+          opt.value = '0';
+          opt.innerText = 'Camera 0 (Default)';
+          select.appendChild(opt);
+        }
+      } catch (err) {
+        console.warn('Failed to query camera indices:', err);
+      }
+    }
+
+    function startStream() {
+      if (isStreaming) return;
+      isStreaming = true;
+
+      document.getElementById('btn-start-stream').style.display = 'none';
+      document.getElementById('btn-stop-stream').style.display = 'inline-flex';
+      document.getElementById('stream-placeholder').style.display = 'none';
+
+      if (streamMode === 'server') {
+        startServerMjpegStream();
+      } else {
+        startBrowserWebcamStream();
+      }
+    }
+
+    function stopStream() {
+      isStreaming = false;
+      document.getElementById('btn-start-stream').style.display = 'inline-flex';
+      document.getElementById('btn-stop-stream').style.display = 'none';
+      document.getElementById('stream-placeholder').style.display = 'flex';
+
+      const img = document.getElementById('mjpeg-stream');
+      img.src = '';
+      img.style.display = 'none';
+
+      if (browserInterval) {
+        clearInterval(browserInterval);
+        browserInterval = null;
+      }
+      if (browserStream) {
+        browserStream.getTracks().forEach(track => track.stop());
+        browserStream = null;
+      }
+      document.getElementById('client-video').style.display = 'none';
+      document.getElementById('client-canvas').style.display = 'none';
+
+      // Reset HUD
+      document.getElementById('hud-fps').innerText = 'FPS: --';
+      document.getElementById('hud-faces').innerText = 'Faces: 0';
+      document.getElementById('hud-latency').innerText = 'Latency: -- ms';
+    }
+
+    function startServerMjpegStream() {
+      const img = document.getElementById('mjpeg-stream');
+      const camIdx = document.getElementById('camera-index-select').value;
+      const conf = document.getElementById('conf-slider').value;
+      const tracking = document.getElementById('toggle-tracking').checked;
+
+      img.src = `/api/face/live-feed?camera_index=${camIdx}&conf_threshold=${conf}&enable_tracking=${tracking}&t=${Date.now()}`;
+      img.style.display = 'block';
+
+      // Connect to WebSocket for telemetry
+      connectTelemetryWebSocket();
+    }
+
+    let ws = null;
+    function connectTelemetryWebSocket() {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws/face-detection`;
+      
+      try {
+        ws = new WebSocket(wsUrl);
+        ws.onmessage = (event) => {
+          if (!isStreaming) return;
+          try {
+            const data = JSON.parse(event.data);
+            updateHUD(data);
+          } catch (e) {}
+        };
+      } catch (err) {
+        console.warn('WebSocket connection error:', err);
+      }
+    }
+
+    async function startBrowserWebcamStream() {
+      const video = document.getElementById('client-video');
+      const canvas = document.getElementById('client-canvas');
+      const ctx = canvas.getContext('2d');
+
+      try {
+        browserStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: { ideal: 640 }, height: { ideal: 480 } }
+        });
+        video.srcObject = browserStream;
+        video.style.display = 'block';
+        canvas.style.display = 'block';
+        canvas.style.position = 'absolute';
+        canvas.style.top = '0';
+        canvas.style.left = '0';
+
+        video.onloadedmetadata = () => {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+        };
+
+        const hiddenCanvas = document.createElement('canvas');
+        const hiddenCtx = hiddenCanvas.getContext('2d');
+
+        let lastTime = performance.now();
+
+        browserInterval = setInterval(async () => {
+          if (!isStreaming || video.readyState !== 4) return;
+
+          hiddenCanvas.width = video.videoWidth;
+          hiddenCanvas.height = video.videoHeight;
+          hiddenCtx.drawImage(video, 0, 0);
+          const dataUrl = hiddenCanvas.toDataURL('image/jpeg', 0.7);
+
+          const startInference = performance.now();
+          try {
+            const resp = await fetch('/api/face/detect-frame', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                image_base64: dataUrl,
+                camera_id: 'browser_webcam',
+                return_annotated: false
+              })
+            });
+            const res = await resp.json();
+            const latency = Math.round(performance.now() - startInference);
+            const now = performance.now();
+            const fps = Math.round(1000 / (now - lastTime));
+            lastTime = now;
+
+            if (res.ok && res.metadata) {
+              res.metadata.processing_fps = fps;
+              updateHUD(res.metadata, latency);
+              drawCanvasOverlay(ctx, canvas, res.metadata);
+            }
+          } catch (e) {
+            console.warn('Detection frame error:', e);
+          }
+        }, 100);
+      } catch (err) {
+        alert('Could not access browser camera: ' + err.message);
+        stopStream();
+      }
+    }
+
+    function drawCanvasOverlay(ctx, canvas, metadata) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const drawLandmarks = document.getElementById('toggle-landmarks').checked;
+
+      metadata.faces.forEach(face => {
+        const b = face.bbox;
+        // Bounding Box
+        ctx.strokeStyle = '#10b981';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(b.x, b.y, b.width, b.height);
+
+        // Label
+        ctx.fillStyle = '#10b981';
+        ctx.font = '12px Inter, sans-serif';
+        const label = `${face.face_id} (${Math.round(face.confidence * 100)}%) Q:${Math.round(face.quality.score * 100)}`;
+        ctx.fillText(label, b.x, Math.max(15, b.y - 5));
+
+        // Landmarks
+        if (drawLandmarks && face.landmarks) {
+          ctx.fillStyle = '#38bdf8';
+          face.landmarks.forEach(pt => {
+            ctx.beginPath();
+            ctx.arc(pt[0], pt[1], 3, 0, 2 * Math.PI);
+            ctx.fill();
+          });
+        }
+      });
+    }
+
+    function updateHUD(meta, latency = null) {
+      const faceCount = meta.faces ? meta.faces.length : 0;
+      const fps = meta.processing_fps ? meta.processing_fps.toFixed(1) : '--';
+      
+      document.getElementById('hud-fps').innerText = `FPS: ${fps}`;
+      document.getElementById('hud-faces').innerText = `Faces: ${faceCount}`;
+      if (latency) {
+        document.getElementById('hud-latency').innerText = `Latency: ${latency} ms`;
+      }
+
+      document.getElementById('stat-face-count').innerText = faceCount;
+      document.getElementById('stat-fps').innerText = fps;
+
+      if (faceCount > 0) {
+        const avgConf = (meta.faces.reduce((a, b) => a + b.confidence, 0) / faceCount).toFixed(2);
+        const avgQual = (meta.faces.reduce((a, b) => a + b.quality.score, 0) / faceCount).toFixed(2);
+        document.getElementById('stat-conf').innerText = avgConf;
+        document.getElementById('stat-quality').innerText = avgQual;
+
+        // Render table
+        const tbody = document.getElementById('faces-tbody');
+        tbody.innerHTML = '';
+        meta.faces.forEach(face => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td style="color: #38bdf8;">${face.face_id}</td>
+            <td>${face.track_id !== null ? face.track_id : '--'}</td>
+            <td>${(face.confidence * 100).toFixed(1)}%</td>
+            <td>${face.quality.blur.toFixed(1)}</td>
+            <td>${face.quality.brightness.toFixed(1)}</td>
+            <td>
+              <span style="display: inline-block; width: 40px;">${(face.quality.score * 100).toFixed(0)}%</span>
+              <span class="quality-bar" style="width: ${Math.max(10, face.quality.score * 60)}px;"></span>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+      } else {
+        document.getElementById('stat-conf').innerText = '0.00';
+        document.getElementById('stat-quality').innerText = '0.00';
+        document.getElementById('faces-tbody').innerHTML = `
+          <tr>
+            <td colspan="6" style="text-align: center; color: var(--text-dim); padding: 1rem;">No faces detected in current frame</td>
+          </tr>
+        `;
+      }
+    }
+
+    function captureSnapshot() {
+      if (!isStreaming) {
+        alert('Please start the stream first before taking a snapshot.');
+        return;
+      }
+      if (streamMode === 'server') {
+        window.open('/api/face/snapshot?download=true', '_blank');
+      } else {
+        const canvas = document.getElementById('client-canvas');
+        const video = document.getElementById('client-video');
+        const snap = document.createElement('canvas');
+        snap.width = video.videoWidth;
+        snap.height = video.videoHeight;
+        const sCtx = snap.getContext('2d');
+        sCtx.drawImage(video, 0, 0);
+        sCtx.drawImage(canvas, 0, 0);
+        const a = document.createElement('a');
+        a.href = snap.toDataURL('image/jpeg');
+        a.download = `snapshot_${Date.now()}.jpg`;
+        a.click();
+      }
+    }
+
+    // Video Upload Handlers
+    let selectedVideoFile = null;
+
+    function handleFileSelected(e) {
+      const file = e.target.files[0];
+      if (file) {
+        selectedVideoFile = file;
+        document.getElementById('selected-filename').innerText = `Selected: ${file.name} (${(file.size / (1024 * 1024)).toFixed(1)} MB)`;
+        document.getElementById('btn-process-video').disabled = false;
+      }
+    }
+
+    const dropzone = document.getElementById('dropzone');
+    dropzone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('dragover');
+    });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('dragover');
+      if (e.dataTransfer.files.length) {
+        const file = e.dataTransfer.files[0];
+        if (file.name.toLowerCase().endsWith('.mp4')) {
+          selectedVideoFile = file;
+          document.getElementById('selected-filename').innerText = `Selected: ${file.name} (${(file.size / (1024 * 1024)).toFixed(1)} MB)`;
+          document.getElementById('btn-process-video').disabled = false;
+        } else {
+          alert('Please drop an MP4 video file.');
+        }
+      }
+    });
+
+    async function uploadAndProcessVideo() {
+      if (!selectedVideoFile) return;
+
+      const btn = document.getElementById('btn-process-video');
+      const progressCont = document.getElementById('upload-progress-container');
+      const progressBar = document.getElementById('upload-progress-bar');
+      
+      btn.disabled = true;
+      btn.innerText = 'Processing... Please wait';
+      progressCont.style.display = 'block';
+      progressBar.style.width = '30%';
+
+      const formData = new FormData();
+      formData.append('file', selectedVideoFile);
+
+      try {
+        progressBar.style.width = '60%';
+        const resp = await fetch('/api/face/upload', {
+          method: 'POST',
+          body: formData
+        });
+
+        progressBar.style.width = '100%';
+        if (!resp.ok) {
+          const errData = await resp.json();
+          throw new Error(errData.detail || 'Upload processing failed.');
+        }
+
+        const data = await resp.json();
+        processedVideoData = data;
+        displayVideoResults(data);
+      } catch (err) {
+        alert('Error: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.innerText = '⚡ Process Video';
+        setTimeout(() => { progressCont.style.display = 'none'; progressBar.style.width = '0%'; }, 1000);
+      }
+    }
+
+    function displayVideoResults(data) {
+      document.getElementById('video-results').style.display = 'block';
+      const m = data.metrics;
+      document.getElementById('vid-frames').innerText = m.processed_frames;
+      document.getElementById('vid-faces').innerText = m.detected_faces;
+      document.getElementById('vid-conf').innerText = m.average_confidence.toFixed(2);
+      document.getElementById('vid-quality').innerText = m.average_quality_score.toFixed(2);
+
+      const player = document.getElementById('result-video-player');
+      if (data.video_url) {
+        player.src = data.video_url;
+        document.getElementById('download-video-btn').href = data.download_url || data.video_url;
+      }
+      document.getElementById('video-results').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function downloadMetadataJson() {
+      if (!processedVideoData) return;
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(processedVideoData, null, 2));
+      const dl = document.createElement('a');
+      dl.setAttribute("href", dataStr);
+      dl.setAttribute("download", `face_metadata_${Date.now()}.json`);
+      dl.click();
+    }
+
+    // Initialize camera indices on page load
+    refreshCameras();
+  </script>
+</body>
+</html>
