@@ -1,0 +1,42 @@
+========================================================================
+             VIRTUAL FENCE - SETUP & EXECUTION GUIDE
+========================================================================
+
+1. CREATE A VIRTUAL ENVIRONMENT (If not already created)
+------------------------------------------------------------------------
+   Windows (Command Prompt / PowerShell):
+     python -m venv venv
+
+   Linux / macOS:
+     python3 -m venv venv
+
+
+2. ACTIVATE THE VIRTUAL ENVIRONMENT
+------------------------------------------------------------------------
+   Windows (Command Prompt):
+     venv\Scripts\activate
+
+   Windows (PowerShell):
+     .\venv\Scripts\Activate.ps1
+
+   Linux / macOS:
+     source venv/bin/activate
+
+
+3. INSTALL DEPENDENCIES
+------------------------------------------------------------------------
+   With the virtual environment activated, run:
+
+     pip install -r requirements.txt
+
+
+4. RUN THE APPLICATION
+------------------------------------------------------------------------
+   Main Virtual Fence System:
+     python main.py
+
+   Tracking Test Script:
+     python tracking_test.py
+
+
+========================================================================
