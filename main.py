@@ -54,10 +54,10 @@ model = YOLO("yolo11n.pt")
 # Choose what you want to use:
 # "LIVE"  -> phone/IP camera
 # "VIDEO" -> prerecorded video file
-SOURCE_TYPE = "VIDEO"
+SOURCE_TYPE = "LIVE"
 
 # Used when SOURCE_TYPE = "LIVE"
-LIVE_SOURCE = "http://192.168.19.247:8080/video"
+LIVE_SOURCE = "http://10.115.51.4:8080/video"
 
 # Used when SOURCE_TYPE = "VIDEO"
 VIDEO_SOURCE = "border_test.mp4"
