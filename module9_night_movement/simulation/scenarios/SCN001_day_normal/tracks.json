@@ -1,0 +1,11 @@
+{
+  "description": "SCN-001: A person walks normally at 2 PM (daytime). Night module must stay silent.",
+  "camera_id": "CAM-001",
+  "updates": [
+    {"track_id": 7, "object_type": "person", "timestamp": "2026-01-01T14:00:00", "bbox": [100, 380, 140, 420], "confidence": 0.9, "zone_breach": false},
+    {"track_id": 7, "object_type": "person", "timestamp": "2026-01-01T14:00:00.750", "bbox": [115, 380, 155, 420], "confidence": 0.9, "zone_breach": false},
+    {"track_id": 7, "object_type": "person", "timestamp": "2026-01-01T14:00:01.500", "bbox": [130, 380, 170, 420], "confidence": 0.9, "zone_breach": false},
+    {"track_id": 7, "object_type": "person", "timestamp": "2026-01-01T14:00:02.250", "bbox": [150, 380, 190, 420], "confidence": 0.9, "zone_breach": false},
+    {"track_id": 7, "object_type": "person", "timestamp": "2026-01-01T14:00:03.000", "bbox": [170, 380, 210, 420], "confidence": 0.9, "zone_breach": false}
+  ]
+}

@@ -1,0 +1,18 @@
+# Core (required)
+opencv-python>=4.8
+numpy>=1.24
+
+# Testing
+pytest>=7.4
+
+# Optional (only needed if using mode="astral" sunrise/sunset scheduling)
+astral>=3.2
+pytz>=2024.1
+
+# Optional (only needed for the real PostgreSQL-backed config loader
+# in a full FastAPI service; the config.py loader itself works with
+# any dict-like row and has no hard DB dependency)
+SQLAlchemy>=2.0
+psycopg2-binary>=2.9
+ultralytics>=8.0.0
+torch>=2.0.0
