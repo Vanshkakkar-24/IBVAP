@@ -1,12 +1,59 @@
 services:
-  face-detection:
+  mediamtx:
+    image: bluenviron/mediamtx:latest
+    container_name: ibvap-mediamtx
+    ports:
+      - "8554:8554"   # RTSP (Python AI ingestion)
+      - "1935:1935"   # RTMP (Mobile app publish)
+      - "8889:8889"   # WebRTC (React dashboard video playback)
+      - "8888:8888"   # HLS
+      - "9997:9997"   # MediaMTX API
+    volumes:
+      - ./mediamtx.yml:/mediamtx.yml:ro
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: ibvap-postgres
+    environment:
+      POSTGRES_USER: ibvap
+      POSTGRES_PASSWORD: ibvappassword
+      POSTGRES_DB: ibvap
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: ibvap-redis
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+
+  ibvap:
     build: .
+    container_name: ibvap-app
     ports:
       - "8000:8000"
     env_file:
       - .env
+    environment:
+      DATABASE_URL: postgresql://ibvap:ibvappassword@postgres:5432/ibvap
+      REDIS_URL: redis://redis:6379/0
+      MEDIAMTX_RTSP_BASE_URL: rtsp://mediamtx:8554
+      MEDIAMTX_WEBRTC_BASE_URL: http://localhost:8889
     volumes:
       - ./models:/app/models:ro
       - ./uploads:/app/uploads
       - ./outputs:/app/outputs
+      - ./data:/app/data
+    depends_on:
+      - mediamtx
+      - postgres
+      - redis
     restart: unless-stopped
+
+volumes:
+  postgres-data:

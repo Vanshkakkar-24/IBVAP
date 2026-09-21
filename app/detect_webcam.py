@@ -53,23 +53,26 @@ def main() -> None:
     sampler = FrameSampler(reader.fps, settings.process_fps)
     enable_vis = settings.enable_visualization
     enable_tracking = settings.enable_tracking
+    enable_person = settings.enable_person_detection
     settings.ensure_storage_dirs()
 
-    print("\n" + "=" * 55)
-    print("  LIVE WEBCAM FACE DETECTION RUNNING")
-    print("=" * 55)
+    print("\n" + "=" * 60)
+    print("  LIVE PERSON & FACE DETECTION & TRACKING RUNNING")
+    print("=" * 60)
     print("  Controls in video window:")
     print("    [q] or [ESC] - Quit")
     print("    [s]         - Save snapshot to outputs/")
-    print("    [t]         - Toggle Tracking (IoU Tracker)")
-    print("    [v]         - Toggle Visualization")
-    print("=" * 55 + "\n")
+    print("    [p]         - Toggle Person Detection & Continuous Tracking")
+    print("    [t]         - Toggle Face Tracking")
+    print("    [v]         - Toggle Visualization Overlay")
+    print("=" * 60 + "\n")
 
     try:
         for frame_id, frame in reader.frames(lambda: False):
             if not sampler.should_process(frame_id):
                 continue
             service.settings.enable_tracking = enable_tracking
+            service.settings.enable_person_detection = enable_person
             metadata = service.process_frame(
                 frame,
                 frame_id,
@@ -77,33 +80,34 @@ def main() -> None:
                 input_fps=reader.fps,
                 source_type="webcam",
             )
+            person_count = len(metadata.persons)
             face_count = len(metadata.faces)
-            avg_conf = _average([face.confidence for face in metadata.faces])
-            avg_qual = _average([face.quality.score for face in metadata.faces])
             fps = metadata.processing_fps or 0.0
 
+            # Count persons with face vs persons tracked without face
+            faces_visible = sum(1 for p in metadata.persons if p.has_face)
             status_line = (
-                f"\rFrame {frame_id:05d} | Faces: {face_count:2d} | "
-                f"Avg Conf: {avg_conf:.2f} | Avg Quality: {avg_qual:.2f} | FPS: {fps:4.1f}"
+                f"\rFrame {frame_id:05d} | Persons: {person_count} (Faces visible: {faces_visible}) | "
+                f"Faces: {face_count} | FPS: {fps:4.1f}"
             )
             print(status_line, end="", flush=True)
 
             if not args.no_window and enable_vis:
                 annotated = service.draw(frame.copy(), metadata)
-                # Add on-screen HUD help
                 h, w = annotated.shape[:2]
+                hud_msg = f"[q]Quit [s]Snap [p]Person:{'ON' if enable_person else 'OFF'} [t]Track:{'ON' if enable_tracking else 'OFF'}"
                 cv2.putText(
                     annotated,
-                    f"Keys: [q] Quit  [s] Snapshot  [t] Track:{'ON' if enable_tracking else 'OFF'}",
+                    hud_msg,
                     (10, h - 15),
                     cv2.FONT_HERSHEY_SIMPLEX,
-                    0.5,
-                    (200, 200, 200),
+                    0.45,
+                    (220, 220, 220),
                     1,
                     cv2.LINE_AA,
                 )
                 try:
-                    cv2.imshow("Live Face Detection (YuNet)", annotated)
+                    cv2.imshow("Live Person & Face Tracking", annotated)
                     key = cv2.waitKey(1) & 0xFF
                     if key in (ord("q"), 27):  # 'q' or ESC
                         print("\nStopping webcam...")
@@ -113,6 +117,9 @@ def main() -> None:
                         snap_path = settings.output_dir / f"webcam_snapshot_{timestamp}.jpg"
                         cv2.imwrite(str(snap_path), annotated)
                         print(f"\n[SNAPSHOT] Saved to {snap_path}")
+                    elif key == ord("p"):
+                        enable_person = not enable_person
+                        print(f"\n[TOGGLE] Person detection set to {enable_person}")
                     elif key == ord("t"):
                         enable_tracking = not enable_tracking
                         print(f"\n[TOGGLE] Tracking set to {enable_tracking}")

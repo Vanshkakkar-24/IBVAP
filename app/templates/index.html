@@ -3,1102 +3,936 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Face Detection & Live Analysis Hub</title>
+  <title>IBVAP - Face Detection Module & Multi-Camera Surveillance Hub</title>
+
+  <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --bg-primary: #0a0f1d;
-      --bg-card: #131b2e;
-      --bg-card-hover: #19243d;
-      --border-color: #263352;
-      --accent: #3b82f6;
-      --accent-hover: #2563eb;
-      --accent-success: #10b981;
-      --accent-warning: #f59e0b;
-      --accent-danger: #ef4444;
-      --text-main: #f3f4f6;
-      --text-muted: #9ca3af;
-      --text-dim: #6b7280;
-    }
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: 'Inter', sans-serif;
-      background-color: var(--bg-primary);
-      color: var(--text-main);
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-    }
-
-    header {
-      background: rgba(19, 27, 46, 0.85);
-      backdrop-filter: blur(12px);
-      border-bottom: 1px solid var(--border-color);
-      padding: 1rem 2rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      position: sticky;
-      top: 0;
-      z-index: 50;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .brand-icon {
-      width: 36px;
-      height: 36px;
-      background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-weight: 700;
-      font-size: 1.2rem;
-    }
-
-    .brand-title {
-      font-size: 1.25rem;
-      font-weight: 700;
-      letter-spacing: -0.02em;
-    }
-
-    .brand-subtitle {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-    }
-
-    .badge-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.4rem;
-      padding: 0.35rem 0.75rem;
-      border-radius: 9999px;
-      font-size: 0.8rem;
-      font-weight: 500;
-      background: #1e293b;
-      border: 1px solid var(--border-color);
-    }
-
-    .status-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--accent-success);
-    }
-
-    .status-dot.active {
-      box-shadow: 0 0 8px var(--accent-success);
-    }
-
-    .nav-tabs {
-      display: flex;
-      gap: 0.5rem;
-      background: var(--bg-card);
-      padding: 0.35rem;
-      border-radius: 10px;
-      border: 1px solid var(--border-color);
-    }
-
-    .nav-tab-btn {
-      background: transparent;
-      border: none;
-      color: var(--text-muted);
-      padding: 0.5rem 1.2rem;
-      border-radius: 6px;
-      font-size: 0.9rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .nav-tab-btn:hover {
-      color: var(--text-main);
-    }
-
-    .nav-tab-btn.active {
-      background: var(--accent);
-      color: white;
-    }
-
-    main {
-      flex: 1;
-      padding: 2rem;
-      max-width: 1400px;
-      margin: 0 auto;
-      width: 100%;
-    }
-
-    .tab-content {
-      display: none;
-    }
-
-    .tab-content.active {
-      display: block;
-    }
-
-    /* Grid Layout for Live Camera */
-    .view-grid {
-      display: grid;
-      grid-template-columns: 1fr 340px;
-      gap: 1.5rem;
-    }
-
-    @media (max-width: 1024px) {
-      .view-grid {
-        grid-template-columns: 1fr;
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            dark: {
+              900: '#070b14',
+              800: '#0d1527',
+              700: '#14203d',
+              600: '#1e2f56',
+              500: '#2b3f6e',
+            },
+            accent: {
+              blue: '#3b82f6',
+              cyan: '#06b6d4',
+              emerald: '#10b981',
+              amber: '#f59e0b',
+              rose: '#f43f5e',
+            }
+          }
+        }
       }
     }
+  </script>
 
-    .card {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      padding: 1.25rem;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
-    }
+  <!-- React 18 & Babel Standalone -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-    .card-title {
-      font-size: 1.05rem;
-      font-weight: 600;
-      margin-bottom: 1rem;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+  <style>
+    body {
+      background-color: #070b14;
+      color: #f3f4f6;
     }
-
-    /* Video Frame Container */
-    .video-viewport {
-      position: relative;
-      background: #000;
-      border-radius: 10px;
-      overflow: hidden;
-      aspect-ratio: 16 / 9;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border: 1px solid var(--border-color);
-    }
-
-    .video-viewport img,
-    .video-viewport video,
-    .video-viewport canvas {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
-
-    .viewport-overlay {
-      position: absolute;
-      top: 1rem;
-      left: 1rem;
-      display: flex;
-      gap: 0.5rem;
-      z-index: 10;
-    }
-
-    .hud-pill {
-      background: rgba(10, 15, 29, 0.75);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      padding: 0.35rem 0.75rem;
-      border-radius: 6px;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.8rem;
-      color: #38bdf8;
-    }
-
-    .empty-state {
-      text-align: center;
-      color: var(--text-muted);
-      padding: 2rem;
-    }
-
-    .empty-icon {
-      font-size: 3rem;
-      margin-bottom: 0.5rem;
-      opacity: 0.6;
-    }
-
-    /* Controls */
-    .control-group {
-      margin-bottom: 1.25rem;
-    }
-
-    .control-label {
-      display: block;
-      font-size: 0.85rem;
-      font-weight: 500;
-      color: var(--text-muted);
-      margin-bottom: 0.4rem;
-    }
-
-    .select, input[type="text"] {
-      width: 100%;
-      background: #0f1626;
-      border: 1px solid var(--border-color);
-      color: var(--text-main);
-      padding: 0.6rem 0.8rem;
-      border-radius: 6px;
-      font-size: 0.9rem;
-      outline: none;
-    }
-
-    .select:focus, input[type="text"]:focus {
-      border-color: var(--accent);
-    }
-
-    .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.5rem;
-      padding: 0.65rem 1.2rem;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 0.9rem;
-      cursor: pointer;
-      border: none;
-      transition: all 0.2s;
-      width: 100%;
-    }
-
-    .btn-primary {
-      background: var(--accent);
-      color: white;
-    }
-    .btn-primary:hover {
-      background: var(--accent-hover);
-    }
-
-    .btn-danger {
-      background: var(--accent-danger);
-      color: white;
-    }
-    .btn-danger:hover {
-      background: #dc2626;
-    }
-
-    .btn-secondary {
-      background: #1e293b;
-      color: var(--text-main);
-      border: 1px solid var(--border-color);
-    }
-    .btn-secondary:hover {
-      background: #334155;
-    }
-
-    .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 0.75rem;
-      margin-bottom: 1.25rem;
-    }
-
-    .stat-box {
-      background: #0f172a;
-      border: 1px solid var(--border-color);
-      padding: 0.85rem;
-      border-radius: 8px;
-    }
-
-    .stat-value {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 1.4rem;
-      font-weight: 700;
-      color: #38bdf8;
-    }
-
-    .stat-title {
-      font-size: 0.75rem;
-      color: var(--text-dim);
-      margin-top: 0.2rem;
-    }
-
-    /* Video Upload Area */
-    .dropzone {
-      border: 2px dashed var(--border-color);
-      border-radius: 12px;
-      padding: 3rem 2rem;
-      text-align: center;
-      background: rgba(19, 27, 46, 0.5);
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .dropzone:hover, .dropzone.dragover {
-      border-color: var(--accent);
-      background: rgba(59, 130, 246, 0.05);
-    }
-
-    .progress-bar-container {
-      width: 100%;
-      height: 8px;
-      background: #1e293b;
-      border-radius: 4px;
-      overflow: hidden;
-      margin-top: 1rem;
-      display: none;
-    }
-
-    .progress-bar {
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, #3b82f6, #10b981);
-      transition: width 0.3s ease;
-    }
-
-    .faces-table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 0.5rem;
-      font-size: 0.85rem;
-    }
-
-    .faces-table th {
-      text-align: left;
-      color: var(--text-muted);
-      border-bottom: 1px solid var(--border-color);
-      padding: 0.5rem;
-      font-weight: 500;
-    }
-
-    .faces-table td {
-      padding: 0.5rem;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      font-family: 'JetBrains Mono', monospace;
-    }
-
-    .quality-bar {
-      display: inline-block;
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
       height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #0d1527;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #1e2f56;
       border-radius: 3px;
-      background: #10b981;
     }
-
-    .toggle-group {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      margin-bottom: 0.8rem;
-    }
-
-    .toggle-group label {
-      font-size: 0.85rem;
-      color: var(--text-muted);
-    }
-
-    input[type="checkbox"] {
-      cursor: pointer;
-      width: 16px;
-      height: 16px;
-      accent-color: var(--accent);
-    }
-
-    .slider-container {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .slider-container input[type="range"] {
-      flex: 1;
-      accent-color: var(--accent);
-    }
-
-    .slider-val {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.85rem;
-      min-width: 40px;
-    }
-
-    footer {
-      border-top: 1px solid var(--border-color);
-      padding: 1rem 2rem;
-      text-align: center;
-      font-size: 0.8rem;
-      color: var(--text-dim);
+    .pulse-glow {
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
     }
   </style>
 </head>
-<body>
-  <header>
-    <div class="brand">
-      <div class="brand-icon">⚡</div>
-      <div>
-        <h1 class="brand-title">Face Detection Module</h1>
-        <p class="brand-subtitle">Real-time YuNet & Custom Deep Learning Inference</p>
-      </div>
-    </div>
+<body class="font-sans min-h-screen flex flex-col bg-[#070b14] text-gray-100 antialiased selection:bg-blue-600 selection:text-white custom-scrollbar">
+  <div id="root"></div>
 
-    <div class="nav-tabs">
-      <button class="nav-tab-btn active" onclick="switchTab('webcam')">📹 Live Webcam Detection</button>
-      <button class="nav-tab-btn" onclick="switchTab('video')">📁 Upload Video Detection</button>
-      <button class="nav-tab-btn" onclick="switchTab('training')">🧠 Model & Training</button>
-    </div>
+  <!-- React Application Logic -->
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
 
-    <div class="badge-status">
-      <span class="status-dot active"></span>
-      <span id="backend-status">Backend Active</span>
-    </div>
-  </header>
-
-  <main>
-    <!-- TAB 1: LIVE WEBCAM (PRIMARY FOCUS) -->
-    <div id="tab-webcam" class="tab-content active">
-      <div class="view-grid">
-        <!-- Main Viewport -->
-        <div class="card">
-          <div class="card-title">
-            <span>Live Camera Feed</span>
-            <div style="display: flex; gap: 0.5rem;">
-              <button class="btn btn-secondary" style="padding: 0.35rem 0.8rem; font-size: 0.8rem;" onclick="refreshCameras()">🔄 Scan Cameras</button>
-              <button class="btn btn-secondary" style="padding: 0.35rem 0.8rem; font-size: 0.8rem;" onclick="captureSnapshot()">📸 Snapshot</button>
-            </div>
-          </div>
-
-          <div class="video-viewport" id="viewport-container">
-            <div class="viewport-overlay">
-              <div class="hud-pill" id="hud-fps">FPS: --</div>
-              <div class="hud-pill" id="hud-faces">Faces: 0</div>
-              <div class="hud-pill" id="hud-latency">Latency: -- ms</div>
-            </div>
-
-            <!-- Server MJPEG Stream -->
-            <img id="mjpeg-stream" src="" alt="Webcam Stream" style="display: none;" />
-            <!-- Client Browser Camera fallback -->
-            <video id="client-video" autoplay playsinline muted style="display: none;"></video>
-            <canvas id="client-canvas" style="display: none;"></canvas>
-
-            <!-- Idle Empty State -->
-            <div id="stream-placeholder" class="empty-state">
-              <div class="empty-icon">📷</div>
-              <h3>Webcam Feed Stopped</h3>
-              <p style="margin-top: 0.5rem; font-size: 0.9rem;">Select a camera source and click "Start Live Stream" below.</p>
-            </div>
-          </div>
-
-          <!-- Face Detections Table in current frame -->
-          <div style="margin-top: 1.5rem;">
-            <h4 style="font-size: 0.95rem; margin-bottom: 0.5rem; color: var(--text-muted);">Real-time Face Telemetry</h4>
-            <div style="overflow-x: auto;">
-              <table class="faces-table">
-                <thead>
-                  <tr>
-                    <th>Face ID</th>
-                    <th>Track ID</th>
-                    <th>Confidence</th>
-                    <th>Sharpness (Blur)</th>
-                    <th>Brightness</th>
-                    <th>Quality Score</th>
-                  </tr>
-                </thead>
-                <tbody id="faces-tbody">
-                  <tr>
-                    <td colspan="6" style="text-align: center; color: var(--text-dim); padding: 1rem;">No faces detected in current frame</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-
-        <!-- Controls & Metrics Sidebar -->
-        <div style="display: flex; flex-direction: column; gap: 1.5rem;">
-          <!-- Telemetry Stats -->
-          <div class="card">
-            <h3 class="card-title">Live Performance</h3>
-            <div class="stats-grid">
-              <div class="stat-box">
-                <div class="stat-value" id="stat-face-count">0</div>
-                <div class="stat-title">Faces Detected</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-value" id="stat-fps">0.0</div>
-                <div class="stat-title">Processing FPS</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-value" id="stat-conf">0.00</div>
-                <div class="stat-title">Avg Confidence</div>
-              </div>
-              <div class="stat-box">
-                <div class="stat-value" id="stat-quality">0.00</div>
-                <div class="stat-title">Avg Quality Score</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Camera Stream Controls -->
-          <div class="card">
-            <h3 class="card-title">Stream Configuration</h3>
-
-            <div class="control-group">
-              <label class="control-label">Capture Method</label>
-              <select id="camera-mode" class="select" onchange="onModeChange()">
-                <option value="server">Server Hardware Webcam (DirectShow/OpenCV)</option>
-                <option value="browser">Browser Client Camera (WebRTC API)</option>
-              </select>
-            </div>
-
-            <div class="control-group" id="server-camera-select-group">
-              <label class="control-label">Camera Index</label>
-              <select id="camera-index-select" class="select">
-                <option value="0">Camera 0 (Default)</option>
-              </select>
-            </div>
-
-            <div class="control-group">
-              <label class="control-label">Confidence Threshold</label>
-              <div class="slider-container">
-                <input type="range" id="conf-slider" min="0.1" max="0.95" step="0.05" value="0.65" oninput="updateConf(this.value)" />
-                <span class="slider-val" id="conf-val">0.65</span>
-              </div>
-            </div>
-
-            <div class="toggle-group">
-              <label for="toggle-tracking">Enable IoU Tracking</label>
-              <input type="checkbox" id="toggle-tracking" checked />
-            </div>
-
-            <div class="toggle-group">
-              <label for="toggle-landmarks">Draw 5 Face Landmarks</label>
-              <input type="checkbox" id="toggle-landmarks" checked />
-            </div>
-
-            <div style="display: flex; gap: 0.75rem; margin-top: 1rem;">
-              <button id="btn-start-stream" class="btn btn-primary" onclick="startStream()">▶ Start Live Stream</button>
-              <button id="btn-stop-stream" class="btn btn-danger" onclick="stopStream()" style="display: none;">⏹ Stop Stream</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 2: UPLOADED VIDEO -->
-    <div id="tab-video" class="tab-content">
-      <div class="card" style="margin-bottom: 1.5rem;">
-        <h2 class="card-title">MP4 Video Processing</h2>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
-          Upload any MP4 video file. The system will perform frame-by-frame face detection, evaluate quality, calculate tracks, and produce an annotated video and JSON analytics.
-        </p>
-
-        <div class="dropzone" id="dropzone" onclick="document.getElementById('video-input').click()">
-          <input type="file" id="video-input" accept=".mp4" style="display: none;" onchange="handleFileSelected(event)" />
-          <div style="font-size: 2.5rem; margin-bottom: 0.5rem;">🎬</div>
-          <h3>Click or Drag & Drop MP4 Video</h3>
-          <p style="color: var(--text-dim); font-size: 0.85rem; margin-top: 0.5rem;">Supported formats: .mp4 (H.264 recommended)</p>
-          <div id="selected-filename" style="margin-top: 1rem; font-weight: 600; color: var(--accent);"></div>
-        </div>
-
-        <div class="progress-bar-container" id="upload-progress-container">
-          <div class="progress-bar" id="upload-progress-bar"></div>
-        </div>
-
-        <div style="margin-top: 1.5rem; display: flex; gap: 1rem;">
-          <button id="btn-process-video" class="btn btn-primary" style="max-width: 200px;" onclick="uploadAndProcessVideo()" disabled>⚡ Process Video</button>
-        </div>
-      </div>
-
-      <!-- Results section -->
-      <div id="video-results" class="card" style="display: none;">
-        <h3 class="card-title">Processed Video Output</h3>
-
-        <div class="stats-grid" style="margin-bottom: 1.5rem;">
-          <div class="stat-box">
-            <div class="stat-value" id="vid-frames">0</div>
-            <div class="stat-title">Frames Processed</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-value" id="vid-faces">0</div>
-            <div class="stat-title">Total Faces Detected</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-value" id="vid-conf">0.00</div>
-            <div class="stat-title">Average Confidence</div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-value" id="vid-quality">0.00</div>
-            <div class="stat-title">Average Quality Score</div>
-          </div>
-        </div>
-
-        <div class="video-viewport" style="max-height: 500px; margin-bottom: 1.5rem;">
-          <video id="result-video-player" controls style="max-height: 500px;"></video>
-        </div>
-
-        <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-          <a id="download-video-btn" href="#" class="btn btn-primary" style="max-width: 250px;" download>⬇ Download Annotated MP4</a>
-          <button id="download-json-btn" class="btn btn-secondary" style="max-width: 250px;" onclick="downloadMetadataJson()">📋 Download JSON Metadata</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- TAB 3: MODEL & TRAINING -->
-    <div id="tab-training" class="tab-content">
-      <div class="card" style="margin-bottom: 1.5rem;">
-        <h2 class="card-title">Face Detection Model Architecture</h2>
-        <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 1rem;">
-          This system uses the high-speed <strong>YuNet</strong> ONNX face detector by default, and includes a full deep learning training pipeline (<code>app/training/train.py</code>) to train a custom face detection network from scratch or fine-tune with PyTorch and export to ONNX.
-        </p>
-
-        <div style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); display: grid; gap: 1.25rem; margin-top: 1rem;">
-          <div class="stat-box">
-            <h4 style="color: var(--accent); margin-bottom: 0.5rem;">Primary Model (YuNet)</h4>
-            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
-              Location: <code>models/face_detection_yunet.onnx</code><br>
-              Framework: OpenCV FaceDetectorYN<br>
-              Inference: ONNX Runtime / OpenCV DNN<br>
-              Speed: ~40-60 FPS on standard CPU
-            </p>
-          </div>
-          <div class="stat-box">
-            <h4 style="color: var(--accent-success); margin-bottom: 0.5rem;">Custom Trained Model (TinyFaceNet)</h4>
-            <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
-              Location: <code>models/custom_face_detector.onnx</code><br>
-              Framework: PyTorch ➔ ONNX Export<br>
-              Outputs: Face Logits, BBox Regressor, 5 Landmarks<br>
-              Trained via: <code>python -m app.training.train</code>
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <h3 class="card-title">How To Train Your Custom Face Model</h3>
-        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">
-          You can train a custom face detection neural network right from your terminal. Follow these steps:
-        </p>
-        <div style="background: #0f172a; padding: 1rem; border-radius: 8px; border: 1px solid var(--border-color); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; color: #a5f3fc; line-height: 1.6;">
-          # 1. (Optional) Capture training samples directly from your webcam:<br>
-          python -m app.training.dataset --capture-webcam --samples 50<br><br>
-          # 2. Run the training loop (synthetic or captured samples):<br>
-          python -m app.training.train --epochs 10 --batch-size 16 --lr 0.001<br><br>
-          # 3. The script automatically evaluates mAP and exports the ONNX model to:<br>
-          #    models/custom_face_detector.onnx<br><br>
-          # 4. To run live webcam detection with the custom model:<br>
-          python -m app.detect_webcam --camera-index 0
-        </div>
-      </div>
-    </div>
-  </main>
-
-  <footer>
-    Smart Face Detection System &bull; Production Architecture &bull; <a href="/docs" style="color: var(--accent); text-decoration: none;">Interactive Swagger API Docs</a>
-  </footer>
-
-  <script>
-    let isStreaming = false;
-    let streamMode = 'server';
-    let browserStream = null;
-    let browserInterval = null;
-    let currentMetadata = null;
-    let processedVideoData = null;
-
-    function switchTab(tabId) {
-      document.querySelectorAll('.nav-tab-btn').forEach(btn => btn.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-
-      if (tabId === 'webcam') {
-        document.querySelectorAll('.nav-tab-btn')[0].classList.add('active');
-        document.getElementById('tab-webcam').classList.add('active');
-      } else if (tabId === 'video') {
-        document.querySelectorAll('.nav-tab-btn')[1].classList.add('active');
-        document.getElementById('tab-video').classList.add('active');
-      } else if (tabId === 'training') {
-        document.querySelectorAll('.nav-tab-btn')[2].classList.add('active');
-        document.getElementById('tab-training').classList.add('active');
-      }
-    }
-
-    function onModeChange() {
-      const mode = document.getElementById('camera-mode').value;
-      streamMode = mode;
-      document.getElementById('server-camera-select-group').style.display = (mode === 'server') ? 'block' : 'none';
-      if (isStreaming) {
-        stopStream();
-      }
-    }
-
-    function updateConf(val) {
-      document.getElementById('conf-val').innerText = val;
-    }
-
-    async function refreshCameras() {
-      try {
-        const resp = await fetch('/api/face/cameras');
-        const data = await resp.json();
-        const select = document.getElementById('camera-index-select');
-        select.innerHTML = '';
-        if (data.cameras && data.cameras.length > 0) {
-          data.cameras.forEach(idx => {
-            const opt = document.createElement('option');
-            opt.value = idx;
-            opt.innerText = `Camera Index ${idx}${idx === 0 ? ' (Primary)' : ''}`;
-            select.appendChild(opt);
-          });
-        } else {
-          const opt = document.createElement('option');
-          opt.value = '0';
-          opt.innerText = 'Camera 0 (Default)';
-          select.appendChild(opt);
-        }
-      } catch (err) {
-        console.warn('Failed to query camera indices:', err);
-      }
-    }
-
-    function startStream() {
-      if (isStreaming) return;
-      isStreaming = true;
-
-      document.getElementById('btn-start-stream').style.display = 'none';
-      document.getElementById('btn-stop-stream').style.display = 'inline-flex';
-      document.getElementById('stream-placeholder').style.display = 'none';
-
-      if (streamMode === 'server') {
-        startServerMjpegStream();
-      } else {
-        startBrowserWebcamStream();
-      }
-    }
-
-    function stopStream() {
-      isStreaming = false;
-      document.getElementById('btn-start-stream').style.display = 'inline-flex';
-      document.getElementById('btn-stop-stream').style.display = 'none';
-      document.getElementById('stream-placeholder').style.display = 'flex';
-
-      const img = document.getElementById('mjpeg-stream');
-      img.src = '';
-      img.style.display = 'none';
-
-      if (browserInterval) {
-        clearInterval(browserInterval);
-        browserInterval = null;
-      }
-      if (browserStream) {
-        browserStream.getTracks().forEach(track => track.stop());
-        browserStream = null;
-      }
-      document.getElementById('client-video').style.display = 'none';
-      document.getElementById('client-canvas').style.display = 'none';
-
-      // Reset HUD
-      document.getElementById('hud-fps').innerText = 'FPS: --';
-      document.getElementById('hud-faces').innerText = 'Faces: 0';
-      document.getElementById('hud-latency').innerText = 'Latency: -- ms';
-    }
-
-    function startServerMjpegStream() {
-      const img = document.getElementById('mjpeg-stream');
-      const camIdx = document.getElementById('camera-index-select').value;
-      const conf = document.getElementById('conf-slider').value;
-      const tracking = document.getElementById('toggle-tracking').checked;
-
-      img.src = `/api/face/live-feed?camera_index=${camIdx}&conf_threshold=${conf}&enable_tracking=${tracking}&t=${Date.now()}`;
-      img.style.display = 'block';
-
-      // Connect to WebSocket for telemetry
-      connectTelemetryWebSocket();
-    }
-
-    let ws = null;
-    function connectTelemetryWebSocket() {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/ws/face-detection`;
-      
-      try {
-        ws = new WebSocket(wsUrl);
-        ws.onmessage = (event) => {
-          if (!isStreaming) return;
-          try {
-            const data = JSON.parse(event.data);
-            updateHUD(data);
-          } catch (e) {}
-        };
-      } catch (err) {
-        console.warn('WebSocket connection error:', err);
-      }
-    }
-
-    async function startBrowserWebcamStream() {
-      const video = document.getElementById('client-video');
-      const canvas = document.getElementById('client-canvas');
-      const ctx = canvas.getContext('2d');
-
-      try {
-        browserStream = await navigator.mediaDevices.getUserMedia({
-          video: { width: { ideal: 640 }, height: { ideal: 480 } }
-        });
-        video.srcObject = browserStream;
-        video.style.display = 'block';
-        canvas.style.display = 'block';
-        canvas.style.position = 'absolute';
-        canvas.style.top = '0';
-        canvas.style.left = '0';
-
-        video.onloadedmetadata = () => {
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-        };
-
-        const hiddenCanvas = document.createElement('canvas');
-        const hiddenCtx = hiddenCanvas.getContext('2d');
-
-        let lastTime = performance.now();
-
-        browserInterval = setInterval(async () => {
-          if (!isStreaming || video.readyState !== 4) return;
-
-          hiddenCanvas.width = video.videoWidth;
-          hiddenCanvas.height = video.videoHeight;
-          hiddenCtx.drawImage(video, 0, 0);
-          const dataUrl = hiddenCanvas.toDataURL('image/jpeg', 0.7);
-
-          const startInference = performance.now();
-          try {
-            const resp = await fetch('/api/face/detect-frame', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                image_base64: dataUrl,
-                camera_id: 'browser_webcam',
-                return_annotated: false
-              })
-            });
-            const res = await resp.json();
-            const latency = Math.round(performance.now() - startInference);
-            const now = performance.now();
-            const fps = Math.round(1000 / (now - lastTime));
-            lastTime = now;
-
-            if (res.ok && res.metadata) {
-              res.metadata.processing_fps = fps;
-              updateHUD(res.metadata, latency);
-              drawCanvasOverlay(ctx, canvas, res.metadata);
-            }
-          } catch (e) {
-            console.warn('Detection frame error:', e);
-          }
-        }, 100);
-      } catch (err) {
-        alert('Could not access browser camera: ' + err.message);
-        stopStream();
-      }
-    }
-
-    function drawCanvasOverlay(ctx, canvas, metadata) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const drawLandmarks = document.getElementById('toggle-landmarks').checked;
-
-      metadata.faces.forEach(face => {
-        const b = face.bbox;
-        // Bounding Box
-        ctx.strokeStyle = '#10b981';
-        ctx.lineWidth = 2;
-        ctx.strokeRect(b.x, b.y, b.width, b.height);
-
-        // Label
-        ctx.fillStyle = '#10b981';
-        ctx.font = '12px Inter, sans-serif';
-        const label = `${face.face_id} (${Math.round(face.confidence * 100)}%) Q:${Math.round(face.quality.score * 100)}`;
-        ctx.fillText(label, b.x, Math.max(15, b.y - 5));
-
-        // Landmarks
-        if (drawLandmarks && face.landmarks) {
-          ctx.fillStyle = '#38bdf8';
-          face.landmarks.forEach(pt => {
-            ctx.beginPath();
-            ctx.arc(pt[0], pt[1], 3, 0, 2 * Math.PI);
-            ctx.fill();
-          });
-        }
+    function App() {
+      const [activeTab, setActiveTab] = useState('grid'); // 'grid', 'history', 'snapshots', 'alerts', 'upload'
+      const [cameras, setCameras] = useState([]);
+      const [persons, setPersons] = useState([]);
+      const [selectedPersonId, setSelectedPersonId] = useState(null);
+      const [personHistory, setPersonHistory] = useState(null);
+      const [snapshots, setSnapshots] = useState([]);
+      const [events, setEvents] = useState([]);
+      const [wsConnected, setWsConnected] = useState(false);
+      const [showAddModal, setShowAddModal] = useState(false);
+      const [cameraFormData, setCameraFormData] = useState({
+        camera_id: '',
+        name: '',
+        type: 'webcam',
+        stream_url: '0',
+        location: 'Control Room',
+        enabled: true,
       });
-    }
 
-    function updateHUD(meta, latency = null) {
-      const faceCount = meta.faces ? meta.faces.length : 0;
-      const fps = meta.processing_fps ? meta.processing_fps.toFixed(1) : '--';
-      
-      document.getElementById('hud-fps').innerText = `FPS: ${fps}`;
-      document.getElementById('hud-faces').innerText = `Faces: ${faceCount}`;
-      if (latency) {
-        document.getElementById('hud-latency').innerText = `Latency: ${latency} ms`;
-      }
+      // Track live camera frame metadata received via WebSocket: camera_id -> metadata
+      const [liveFrameMetadata, setLiveFrameMetadata] = useState({});
 
-      document.getElementById('stat-face-count').innerText = faceCount;
-      document.getElementById('stat-fps').innerText = fps;
+      // Connect WebSocket
+      useEffect(() => {
+        let ws = null;
+        let reconnectTimeout = null;
 
-      if (faceCount > 0) {
-        const avgConf = (meta.faces.reduce((a, b) => a + b.confidence, 0) / faceCount).toFixed(2);
-        const avgQual = (meta.faces.reduce((a, b) => a + b.quality.score, 0) / faceCount).toFixed(2);
-        document.getElementById('stat-conf').innerText = avgConf;
-        document.getElementById('stat-quality').innerText = avgQual;
+        function connectWs() {
+          const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+          const wsUrl = `${protocol}//${window.location.host}/ws/live`;
+          ws = new WebSocket(wsUrl);
 
-        // Render table
-        const tbody = document.getElementById('faces-tbody');
-        tbody.innerHTML = '';
-        meta.faces.forEach(face => {
-          const row = document.createElement('tr');
-          row.innerHTML = `
-            <td style="color: #38bdf8;">${face.face_id}</td>
-            <td>${face.track_id !== null ? face.track_id : '--'}</td>
-            <td>${(face.confidence * 100).toFixed(1)}%</td>
-            <td>${face.quality.blur.toFixed(1)}</td>
-            <td>${face.quality.brightness.toFixed(1)}</td>
-            <td>
-              <span style="display: inline-block; width: 40px;">${(face.quality.score * 100).toFixed(0)}%</span>
-              <span class="quality-bar" style="width: ${Math.max(10, face.quality.score * 60)}px;"></span>
-            </td>
-          `;
-          tbody.appendChild(row);
-        });
-      } else {
-        document.getElementById('stat-conf').innerText = '0.00';
-        document.getElementById('stat-quality').innerText = '0.00';
-        document.getElementById('faces-tbody').innerHTML = `
-          <tr>
-            <td colspan="6" style="text-align: center; color: var(--text-dim); padding: 1rem;">No faces detected in current frame</td>
-          </tr>
-        `;
-      }
-    }
+          ws.onopen = () => {
+            setWsConnected(true);
+          };
 
-    function captureSnapshot() {
-      if (!isStreaming) {
-        alert('Please start the stream first before taking a snapshot.');
-        return;
-      }
-      if (streamMode === 'server') {
-        window.open('/api/face/snapshot?download=true', '_blank');
-      } else {
-        const canvas = document.getElementById('client-canvas');
-        const video = document.getElementById('client-video');
-        const snap = document.createElement('canvas');
-        snap.width = video.videoWidth;
-        snap.height = video.videoHeight;
-        const sCtx = snap.getContext('2d');
-        sCtx.drawImage(video, 0, 0);
-        sCtx.drawImage(canvas, 0, 0);
-        const a = document.createElement('a');
-        a.href = snap.toDataURL('image/jpeg');
-        a.download = `snapshot_${Date.now()}.jpg`;
-        a.click();
-      }
-    }
+          ws.onmessage = (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              if (data.camera_id) {
+                setLiveFrameMetadata(prev => ({
+                  ...prev,
+                  [data.camera_id]: data
+                }));
+              }
+              // If it's a real-time event packet
+              if (data.event_type) {
+                setEvents(prev => [data, ...prev.slice(0, 99)]);
+              }
+            } catch (err) {
+              console.error("WS Parse Error:", err);
+            }
+          };
 
-    // Video Upload Handlers
-    let selectedVideoFile = null;
+          ws.onclose = () => {
+            setWsConnected(false);
+            reconnectTimeout = setTimeout(connectWs, 3000);
+          };
 
-    function handleFileSelected(e) {
-      const file = e.target.files[0];
-      if (file) {
-        selectedVideoFile = file;
-        document.getElementById('selected-filename').innerText = `Selected: ${file.name} (${(file.size / (1024 * 1024)).toFixed(1)} MB)`;
-        document.getElementById('btn-process-video').disabled = false;
-      }
-    }
-
-    const dropzone = document.getElementById('dropzone');
-    dropzone.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      dropzone.classList.add('dragover');
-    });
-    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
-    dropzone.addEventListener('drop', (e) => {
-      e.preventDefault();
-      dropzone.classList.remove('dragover');
-      if (e.dataTransfer.files.length) {
-        const file = e.dataTransfer.files[0];
-        if (file.name.toLowerCase().endsWith('.mp4')) {
-          selectedVideoFile = file;
-          document.getElementById('selected-filename').innerText = `Selected: ${file.name} (${(file.size / (1024 * 1024)).toFixed(1)} MB)`;
-          document.getElementById('btn-process-video').disabled = false;
-        } else {
-          alert('Please drop an MP4 video file.');
-        }
-      }
-    });
-
-    async function uploadAndProcessVideo() {
-      if (!selectedVideoFile) return;
-
-      const btn = document.getElementById('btn-process-video');
-      const progressCont = document.getElementById('upload-progress-container');
-      const progressBar = document.getElementById('upload-progress-bar');
-      
-      btn.disabled = true;
-      btn.innerText = 'Processing... Please wait';
-      progressCont.style.display = 'block';
-      progressBar.style.width = '30%';
-
-      const formData = new FormData();
-      formData.append('file', selectedVideoFile);
-
-      try {
-        progressBar.style.width = '60%';
-        const resp = await fetch('/api/face/upload', {
-          method: 'POST',
-          body: formData
-        });
-
-        progressBar.style.width = '100%';
-        if (!resp.ok) {
-          const errData = await resp.json();
-          throw new Error(errData.detail || 'Upload processing failed.');
+          ws.onerror = () => {
+            ws.close();
+          };
         }
 
-        const data = await resp.json();
-        processedVideoData = data;
-        displayVideoResults(data);
-      } catch (err) {
-        alert('Error: ' + err.message);
-      } finally {
-        btn.disabled = false;
-        btn.innerText = '⚡ Process Video';
-        setTimeout(() => { progressCont.style.display = 'none'; progressBar.style.width = '0%'; }, 1000);
-      }
+        connectWs();
+        return () => {
+          if (ws) ws.close();
+          if (reconnectTimeout) clearTimeout(reconnectTimeout);
+        };
+      }, []);
+
+      // Periodic fetch for cameras, persons, snapshots, events
+      const refreshData = async () => {
+        try {
+          // Fetch cameras
+          const camRes = await fetch('/cameras');
+          if (camRes.ok) setCameras(await camRes.json());
+
+          // Fetch persons
+          const pRes = await fetch('/persons');
+          if (pRes.ok) setPersons(await pRes.json());
+
+          // Fetch snapshots
+          const sRes = await fetch('/face-snapshots?limit=50');
+          if (sRes.ok) setSnapshots(await sRes.json());
+
+          // Fetch events
+          const eRes = await fetch('/events?limit=50');
+          if (eRes.ok) setEvents(await eRes.json());
+        } catch (err) {
+          console.error("Refresh error:", err);
+        }
+      };
+
+      useEffect(() => {
+        refreshData();
+        const interval = setInterval(refreshData, 3000);
+        return () => clearInterval(interval);
+      }, []);
+
+      // Fetch person history when selectedPersonId changes
+      useEffect(() => {
+        if (!selectedPersonId) return;
+        fetch(`/persons/${selectedPersonId}/history`)
+          .then(res => res.json())
+          .then(data => setPersonHistory(data))
+          .catch(err => console.error("Error loading history:", err));
+      }, [selectedPersonId]);
+
+      // Add camera submit
+      const handleAddCamera = async (e) => {
+        e.preventDefault();
+        try {
+          const res = await fetch('/cameras', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(cameraFormData),
+          });
+          if (res.ok) {
+            setShowAddModal(false);
+            setCameraFormData({
+              camera_id: '',
+              name: '',
+              type: 'webcam',
+              stream_url: '0',
+              location: 'Control Room',
+              enabled: true,
+            });
+            refreshData();
+          } else {
+            const err = await res.json();
+            alert('Failed to register camera: ' + (err.detail || 'Unknown error'));
+          }
+        } catch (err) {
+          alert('Network error: ' + err.message);
+        }
+      };
+
+      // Toggle camera start / stop
+      const toggleCamera = async (cameraId, isOnline) => {
+        const action = isOnline ? 'stop' : 'start';
+        try {
+          await fetch(`/cameras/${cameraId}/${action}`, { method: 'POST' });
+          refreshData();
+        } catch (err) {
+          console.error(`Failed to ${action} camera:`, err);
+        }
+      };
+
+      // Delete camera
+      const deleteCamera = async (cameraId) => {
+        if (!confirm(`Are you sure you want to delete camera ${cameraId}?`)) return;
+        try {
+          await fetch(`/cameras/${cameraId}`, { method: 'DELETE' });
+          refreshData();
+        } catch (err) {
+          console.error("Delete camera error:", err);
+        }
+      };
+
+      return (
+        <div className="flex flex-col min-h-screen">
+          {/* Header */}
+          <header className="sticky top-0 z-40 bg-[#0d1527]/90 backdrop-blur border-b border-[#1e2f56] px-6 py-3.5 flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-400 flex items-center justify-center font-extrabold text-xl shadow-lg shadow-blue-500/20">
+                👁️
+              </div>
+              <div>
+                <h1 className="text-lg font-bold tracking-tight text-white flex items-center gap-2">
+                  IBVAP Multi-Camera System
+                  <span className="text-[10px] uppercase font-semibold tracking-wider bg-blue-950 text-blue-400 border border-blue-800/80 px-2 py-0.5 rounded-full">v3.0</span>
+                </h1>
+                <p className="text-xs text-gray-400 font-mono">Face Detection Module & Whole-Body Appearance Re-ID Hub</p>
+              </div>
+            </div>
+
+            {/* Metrics Pills */}
+            <div className="flex items-center gap-3 text-xs font-mono">
+              <div className="bg-[#14203d] border border-[#1e2f56] px-3 py-1.5 rounded-lg flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-blue-400"></span>
+                <span>Cameras: <strong className="text-white font-bold">{cameras.length}</strong></span>
+              </div>
+              <div className="bg-[#14203d] border border-[#1e2f56] px-3 py-1.5 rounded-lg flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+                <span>Global Persons: <strong className="text-white font-bold">{persons.length}</strong></span>
+              </div>
+              <div className="bg-[#14203d] border border-[#1e2f56] px-3 py-1.5 rounded-lg flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span>Snapshots: <strong className="text-white font-bold">{snapshots.length}</strong></span>
+              </div>
+              <div className="bg-[#14203d] border border-[#1e2f56] px-3 py-1.5 rounded-lg flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${wsConnected ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`}></span>
+                <span className="text-gray-300">{wsConnected ? 'LIVE FEED' : 'CONNECTING...'}</span>
+              </div>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-3 py-1.5 rounded-lg transition shadow-md shadow-blue-600/30 flex items-center gap-1.5 cursor-pointer"
+              >
+                <span>+</span> Add Camera
+              </button>
+            </div>
+          </header>
+
+          {/* Navigation Bar */}
+          <nav className="bg-[#070b14] border-b border-[#14203d] px-6 py-2 flex items-center gap-2 overflow-x-auto text-sm">
+            {[
+              { id: 'grid', label: '📹 Live Multi-Camera Grid', count: cameras.length },
+              { id: 'history', label: '🚶 Person History & Timeline', count: persons.length },
+              { id: 'snapshots', label: '📸 Quality Face Snapshots', count: snapshots.length },
+              { id: 'alerts', label: '🔔 Alerts & Events Feed', count: events.length },
+              { id: 'upload', label: '⚡ Single File & Uploads' },
+            ].map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-4 py-2 rounded-lg font-medium transition flex items-center gap-2 cursor-pointer ${
+                  activeTab === tab.id
+                    ? 'bg-[#1e2f56] text-blue-400 shadow border border-blue-500/30'
+                    : 'text-gray-400 hover:text-gray-200 hover:bg-[#0d1527]'
+                }`}
+              >
+                <span>{tab.label}</span>
+                {tab.count !== undefined && (
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${
+                    activeTab === tab.id ? 'bg-blue-500/20 text-blue-300' : 'bg-[#14203d] text-gray-400'
+                  }`}>
+                    {tab.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </nav>
+
+          {/* Main Content Area */}
+          <main className="flex-1 p-6">
+            {/* TAB 1: MULTI-CAMERA GRID */}
+            {activeTab === 'grid' && (
+              <div>
+                {cameras.length === 0 ? (
+                  <div className="bg-[#0d1527] border border-[#1e2f56] rounded-2xl p-12 text-center max-w-lg mx-auto my-12">
+                    <div className="text-5xl mb-4">📹</div>
+                    <h3 className="text-xl font-bold text-white mb-2">No Cameras Configured</h3>
+                    <p className="text-sm text-gray-400 mb-6">
+                      Add your physical webcam, an RTSP mobile stream (e.g. IP Webcam app), or a MediaMTX stream URL to begin real-time multi-camera tracking.
+                    </p>
+                    <button
+                      onClick={() => setShowAddModal(true)}
+                      className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-5 py-2.5 rounded-xl transition shadow-lg shadow-blue-500/30"
+                    >
+                      + Register First Camera
+                    </button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {cameras.map(cam => {
+                      const meta = liveFrameMetadata[cam.camera_id] || {};
+                      const isOnline = cam.status === 'online' || meta.status === 'online';
+                      return (
+                        <CameraTile
+                          key={cam.camera_id}
+                          camera={cam}
+                          metadata={meta}
+                          isOnline={isOnline}
+                          onToggle={() => toggleCamera(cam.camera_id, isOnline)}
+                          onDelete={() => deleteCamera(cam.camera_id)}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB 2: PERSON HISTORY PANEL */}
+            {activeTab === 'history' && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* Persons List */}
+                <div className="bg-[#0d1527] border border-[#1e2f56] rounded-2xl p-4 flex flex-col h-[750px]">
+                  <div className="flex items-center justify-between mb-3 pb-2 border-b border-[#14203d]">
+                    <h2 className="text-base font-bold text-white">Tracked Global Persons</h2>
+                    <span className="text-xs font-mono text-gray-400">{persons.length} registered</span>
+                  </div>
+                  <div className="overflow-y-auto flex-1 space-y-2 pr-1 custom-scrollbar">
+                    {persons.length === 0 ? (
+                      <p className="text-xs text-gray-400 text-center py-10">No persons recorded yet.</p>
+                    ) : (
+                      persons.map(p => {
+                        const isSelected = selectedPersonId === p.global_person_id;
+                        return (
+                          <div
+                            key={p.global_person_id}
+                            onClick={() => setSelectedPersonId(p.global_person_id)}
+                            className={`p-3.5 rounded-xl border transition cursor-pointer ${
+                              isSelected
+                                ? 'bg-blue-950/40 border-blue-500 text-white shadow-md shadow-blue-500/10'
+                                : 'bg-[#14203d]/40 border-[#1e2f56] hover:bg-[#14203d] text-gray-300'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between mb-1.5">
+                              <span className="font-mono font-bold text-sm text-blue-400">{p.global_person_id}</span>
+                              <span className="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800">
+                                {p.status}
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-400 font-mono flex items-center justify-between">
+                              <span>First: {p.first_seen ? new Date(p.first_seen).toLocaleTimeString() : 'N/A'}</span>
+                              <span>Last: {p.last_seen ? new Date(p.last_seen).toLocaleTimeString() : 'N/A'}</span>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* Person Detailed Timeline */}
+                <div className="lg:col-span-2 bg-[#0d1527] border border-[#1e2f56] rounded-2xl p-6 flex flex-col h-[750px]">
+                  {selectedPersonId && personHistory ? (
+                    <div className="flex flex-col h-full">
+                      <div className="flex items-center justify-between pb-4 mb-4 border-b border-[#14203d]">
+                        <div>
+                          <div className="flex items-center gap-3">
+                            <h2 className="text-xl font-bold font-mono text-white">{selectedPersonId}</h2>
+                            <span className="text-xs bg-blue-950 text-blue-400 border border-blue-800 px-2.5 py-0.5 rounded-full font-mono">
+                              Persistent Global Identity
+                            </span>
+                          </div>
+                          <p className="text-xs text-gray-400 mt-1">Cross-camera appearance tracking log & face snapshot records</p>
+                        </div>
+                        <div className="text-right font-mono text-xs text-gray-400">
+                          <div>Total Events: <strong className="text-white">{personHistory.movements?.length || 0}</strong></div>
+                          <div>Snapshots: <strong className="text-white">{personHistory.snapshots?.length || 0}</strong></div>
+                        </div>
+                      </div>
+
+                      {/* Timeline Events Scroll */}
+                      <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
+                        {/* Snapshots Row */}
+                        {personHistory.snapshots && personHistory.snapshots.length > 0 && (
+                          <div className="bg-[#14203d]/60 border border-[#1e2f56] rounded-xl p-4">
+                            <h3 className="text-xs font-bold text-gray-300 uppercase tracking-wider mb-3 flex items-center gap-2">
+                              <span>📸</span> Captured Face Snapshots (No Face Recognition)
+                            </h3>
+                            <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
+                              {personHistory.snapshots.map(s => (
+                                <div key={s.id} className="flex-shrink-0 bg-[#070b14] border border-[#1e2f56] rounded-lg p-2 text-center">
+                                  <img src={s.image_url} alt="Face Snapshot" className="w-24 h-24 object-cover rounded-md mb-1.5 border border-gray-800" />
+                                  <div className="text-[10px] font-mono text-gray-400">{new Date(s.timestamp).toLocaleTimeString()}</div>
+                                  <div className="text-[10px] font-mono text-cyan-400">Conf: {(s.confidence * 100).toFixed(0)}%</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Chronological Movements Timeline */}
+                        <div className="space-y-3">
+                          <h3 className="text-xs font-bold text-gray-300 uppercase tracking-wider">Movement & Event Sequence</h3>
+                          {personHistory.movements && personHistory.movements.length > 0 ? (
+                            personHistory.movements.map((m, idx) => {
+                              const isTransition = m.event_type === 'CAMERA_TRANSITION';
+                              const isFace = m.event_type === 'FACE_DETECTED';
+                              const isEnter = m.event_type === 'ENTER';
+                              const isExit = m.event_type === 'EXIT';
+
+                              let badgeColor = 'bg-blue-950 text-blue-400 border-blue-800';
+                              if (isTransition) badgeColor = 'bg-indigo-950 text-indigo-400 border-indigo-800';
+                              if (isFace) badgeColor = 'bg-cyan-950 text-cyan-400 border-cyan-800';
+                              if (isEnter) badgeColor = 'bg-emerald-950 text-emerald-400 border-emerald-800';
+                              if (isExit) badgeColor = 'bg-rose-950 text-rose-400 border-rose-800';
+
+                              return (
+                                <div key={m.id || idx} className="flex items-center justify-between p-3 rounded-xl bg-[#14203d]/30 border border-[#1e2f56] font-mono text-xs">
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-gray-400 text-[11px]">{new Date(m.timestamp).toLocaleTimeString()}</span>
+                                    <span className="font-bold text-white bg-[#070b14] px-2 py-0.5 rounded border border-[#1e2f56]">
+                                      {m.camera_id}
+                                    </span>
+                                    {m.track_id > 0 && (
+                                      <span className="text-gray-400">Track #{m.track_id}</span>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`px-2.5 py-0.5 rounded-full border text-[11px] font-semibold ${badgeColor}`}>
+                                      {m.event_type}
+                                    </span>
+                                  </div>
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <p className="text-xs text-gray-400">No movements recorded yet.</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full text-center text-gray-400">
+                      <div className="text-4xl mb-3">🚶</div>
+                      <h3 className="text-base font-semibold text-white">Select a Person to View History</h3>
+                      <p className="text-xs text-gray-400 max-w-sm mt-1">
+                        Select an individual from the left list to review their journey, camera transitions, and face snapshots.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: FACE SNAPSHOTS GALLERY */}
+            {activeTab === 'snapshots' && (
+              <div className="bg-[#0d1527] border border-[#1e2f56] rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#14203d]">
+                  <div>
+                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                      <span>📸</span> Face Snapshots Gallery
+                    </h2>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Snapshots captured exclusively when faces are clear, sharp, and confident (5s cooldown). Strictly no facial identification is performed.
+                    </p>
+                  </div>
+                  <span className="text-xs font-mono text-cyan-400 bg-cyan-950/60 border border-cyan-800 px-3 py-1 rounded-lg">
+                    {snapshots.length} Snapshots Saved
+                  </span>
+                </div>
+
+                {snapshots.length === 0 ? (
+                  <div className="text-center py-16 text-gray-400">
+                    <div className="text-4xl mb-2">📸</div>
+                    <p className="text-sm">No face snapshots captured yet.</p>
+                    <p className="text-xs text-gray-400 mt-1">Snapshots are automatically captured when a tracked person faces the camera with sufficient clarity.</p>
+                  </div>
+                ) : (
+                    {snapshots.map(s => {
+                      const imgUrl = s.image_url && s.image_url.startsWith('http') 
+                        ? s.image_url 
+                        : (s.image_url && s.image_url.startsWith('/') ? s.image_url : `/${s.image_url}`);
+                      return (
+                        <div key={s.id} className="bg-[#14203d] border border-[#1e2f56] rounded-xl overflow-hidden shadow-lg group hover:border-blue-500 transition">
+                          <div className="relative aspect-square bg-[#070b14] overflow-hidden">
+                            <img
+                              src={imgUrl}
+                              alt="Face Snapshot"
+                              className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                              onError={(e) => {
+                                const filename = (s.image_url || '').split('/').pop();
+                                if (filename && !e.target.src.includes('/snapshots/')) {
+                                  e.target.src = `/snapshots/${filename}`;
+                                } else if (filename && !e.target.src.includes('/outputs/snapshots/')) {
+                                  e.target.src = `/outputs/snapshots/${filename}`;
+                                }
+                              }}
+                            />
+                            <div className="absolute top-2 right-2 bg-black/70 backdrop-blur text-[10px] font-mono font-bold text-emerald-400 px-1.5 py-0.5 rounded">
+                              {(s.confidence * 100).toFixed(0)}%
+                            </div>
+                          </div>
+                          <div className="p-3 font-mono text-xs space-y-1">
+                            <div className="font-bold text-blue-400 truncate">{s.person_id}</div>
+                            <div className="text-[11px] text-gray-300 flex items-center justify-between">
+                              <span>{s.camera_id}</span>
+                              <span className="text-gray-400">Trk #{s.track_id}</span>
+                            </div>
+                            <div className="text-[10px] text-gray-400">
+                              {new Date(s.timestamp).toLocaleTimeString()}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                )}
+              </div>
+            )}
+
+            {/* TAB 4: ALERTS FEED */}
+            {activeTab === 'alerts' && (
+              <div className="bg-[#0d1527] border border-[#1e2f56] rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-[#14203d]">
+                  <div>
+                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                      <span>🔔</span> Real-Time System & Tracking Alerts
+                    </h2>
+                    <p className="text-xs text-gray-400 mt-1">Live audit log of camera statuses, person handoffs, and operational events.</p>
+                  </div>
+                  <button
+                    onClick={refreshData}
+                    className="text-xs font-mono bg-[#14203d] hover:bg-[#1e2f56] text-gray-300 px-3 py-1.5 rounded-lg border border-[#1e2f56] transition"
+                  >
+                    🔄 Refresh Feed
+                  </button>
+                </div>
+
+                {events.length === 0 ? (
+                  <div className="text-center py-16 text-gray-400">
+                    <p className="text-sm">No recent alerts recorded.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3 font-mono text-xs">
+                    {events.map((ev, idx) => {
+                      const isWarning = ev.severity === 'warning';
+                      const isCritical = ev.severity === 'critical';
+                      let cardBorder = 'border-[#1e2f56] bg-[#14203d]/30';
+                      let badge = 'bg-blue-950 text-blue-400 border-blue-800';
+
+                      if (isCritical) {
+                        cardBorder = 'border-rose-800/60 bg-rose-950/20';
+                        badge = 'bg-rose-950 text-rose-400 border-rose-800';
+                      } else if (isWarning) {
+                        cardBorder = 'border-amber-800/60 bg-amber-950/20';
+                        badge = 'bg-amber-950 text-amber-400 border-amber-800';
+                      }
+
+                      return (
+                        <div key={ev.id || idx} className={`p-4 rounded-xl border flex flex-wrap items-center justify-between gap-3 ${cardBorder}`}>
+                          <div className="flex items-center gap-3">
+                            <span className={`px-2 py-0.5 rounded uppercase font-bold text-[10px] border ${badge}`}>
+                              {ev.severity || 'info'}
+                            </span>
+                            <span className="font-bold text-white text-sm">{ev.event_type}</span>
+                            {ev.camera_id && (
+                              <span className="bg-[#070b14] px-2 py-0.5 rounded border border-[#1e2f56] text-gray-300">
+                                {ev.camera_id}
+                              </span>
+                            )}
+                            {ev.person_id && (
+                              <span className="text-blue-400 font-bold">{ev.person_id}</span>
+                            )}
+                          </div>
+                          <div className="text-gray-400 text-xs flex items-center gap-4">
+                            {ev.metadata && ev.metadata.from_camera && (
+                              <span className="text-indigo-300">Handoff: {ev.metadata.from_camera} ➔ {ev.metadata.to_camera}</span>
+                            )}
+                            <span>{ev.timestamp ? new Date(ev.timestamp).toLocaleTimeString() : 'Just now'}</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* TAB 5: SINGLE FILE & UPLOADS */}
+            {activeTab === 'upload' && (
+              <div className="max-w-2xl mx-auto bg-[#0d1527] border border-[#1e2f56] rounded-2xl p-8">
+                <h2 className="text-xl font-bold text-white mb-2">Video File Upload & Analysis</h2>
+                <p className="text-sm text-gray-400 mb-6">
+                  Upload an MP4 video file for automated frame-by-frame person tracking, face detection, and annotated video generation.
+                </p>
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault();
+                    const fileInput = document.getElementById('mp4-file-input');
+                    if (!fileInput.files.length) return alert('Select an MP4 file.');
+                    const formData = new FormData();
+                    formData.append('file', fileInput.files[0]);
+                    const statusEl = document.getElementById('upload-status');
+                    statusEl.innerText = 'Processing video... Please wait.';
+                    try {
+                      const res = await fetch('/api/face/upload', { method: 'POST', body: formData });
+                      if (res.ok) {
+                        const data = await res.json();
+                        statusEl.innerText = `Done! Processed ${data.metrics.processed_frames} frames.`;
+                        if (data.video_url) {
+                          window.open(data.video_url, '_blank');
+                        }
+                      } else {
+                        const err = await res.json();
+                        statusEl.innerText = `Upload failed: ${err.detail}`;
+                      }
+                    } catch (err) {
+                      statusEl.innerText = `Network error: ${err.message}`;
+                    }
+                  }}
+                  className="space-y-4"
+                >
+                  <div className="border-2 border-dashed border-[#1e2f56] rounded-xl p-8 text-center hover:border-blue-500 transition">
+                    <input type="file" id="mp4-file-input" accept=".mp4" className="block w-full text-sm text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-500 cursor-pointer" />
+                    <p className="text-xs text-gray-400 mt-2">Maximum file size: 500 MB</p>
+                  </div>
+                  <button type="submit" className="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-blue-500/20">
+                    Upload & Process MP4
+                  </button>
+                  <div id="upload-status" className="text-xs font-mono text-center text-cyan-400"></div>
+                </form>
+              </div>
+            )}
+          </main>
+
+          {/* Add Camera Modal */}
+          {showAddModal && (
+            <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+              <div className="bg-[#0d1527] border border-[#1e2f56] rounded-2xl max-w-md w-full p-6 shadow-2xl">
+                <div className="flex items-center justify-between mb-4 pb-2 border-b border-[#14203d]">
+                  <h3 className="text-lg font-bold text-white">Register New Camera Stream</h3>
+                  <button onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-white text-lg cursor-pointer">✕</button>
+                </div>
+                <form onSubmit={handleAddCamera} className="space-y-3.5 text-sm">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-300 mb-1">Camera ID *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. CAM-002"
+                      required
+                      value={cameraFormData.camera_id}
+                      onChange={e => setCameraFormData({ ...cameraFormData, camera_id: e.target.value })}
+                      className="w-full bg-[#14203d] border border-[#1e2f56] rounded-lg px-3 py-2 text-white font-mono text-xs focus:border-blue-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-300 mb-1">Camera Name *</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. North Gate Mobile Stream"
+                      required
+                      value={cameraFormData.name}
+                      onChange={e => setCameraFormData({ ...cameraFormData, name: e.target.value })}
+                      className="w-full bg-[#14203d] border border-[#1e2f56] rounded-lg px-3 py-2 text-white text-xs focus:border-blue-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-300 mb-1">Camera Type</label>
+                    <select
+                      value={cameraFormData.type}
+                      onChange={e => setCameraFormData({ ...cameraFormData, type: e.target.value })}
+                      className="w-full bg-[#14203d] border border-[#1e2f56] rounded-lg px-3 py-2 text-white text-xs focus:border-blue-500 outline-none"
+                    >
+                      <option value="webcam">Physical Webcam</option>
+                      <option value="rtsp">MediaMTX / RTSP Stream</option>
+                      <option value="phone">Mobile Phone (IP Webcam / RTSP)</option>
+                      <option value="video">Local Video File</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-300 mb-1">Stream URL or Camera Index *</label>
+                    <input
+                      type="text"
+                      placeholder="0 or rtsp://localhost:8554/cam2"
+                      required
+                      value={cameraFormData.stream_url}
+                      onChange={e => setCameraFormData({ ...cameraFormData, stream_url: e.target.value })}
+                      className="w-full bg-[#14203d] border border-[#1e2f56] rounded-lg px-3 py-2 text-white font-mono text-xs focus:border-blue-500 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-300 mb-1">Location</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Control Room, Gate 1"
+                      value={cameraFormData.location}
+                      onChange={e => setCameraFormData({ ...cameraFormData, location: e.target.value })}
+                      className="w-full bg-[#14203d] border border-[#1e2f56] rounded-lg px-3 py-2 text-white text-xs focus:border-blue-500 outline-none"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 pt-2">
+                    <input
+                      type="checkbox"
+                      id="cam-enabled"
+                      checked={cameraFormData.enabled}
+                      onChange={e => setCameraFormData({ ...cameraFormData, enabled: e.target.checked })}
+                      className="rounded bg-[#14203d] border-[#1e2f56] text-blue-600 focus:ring-0"
+                    />
+                    <label htmlFor="cam-enabled" className="text-xs text-gray-300">Enable & start camera immediately</label>
+                  </div>
+                  <div className="flex items-center justify-end gap-2 pt-4">
+                    <button
+                      type="button"
+                      onClick={() => setShowAddModal(false)}
+                      className="px-4 py-2 rounded-lg text-gray-400 hover:text-white text-xs font-semibold"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-4 py-2 rounded-lg text-xs transition shadow-md shadow-blue-600/30"
+                    >
+                      Register Camera
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+        </div>
+      );
     }
 
-    function displayVideoResults(data) {
-      document.getElementById('video-results').style.display = 'block';
-      const m = data.metrics;
-      document.getElementById('vid-frames').innerText = m.processed_frames;
-      document.getElementById('vid-faces').innerText = m.detected_faces;
-      document.getElementById('vid-conf').innerText = m.average_confidence.toFixed(2);
-      document.getElementById('vid-quality').innerText = m.average_quality_score.toFixed(2);
+    // Camera Tile Component with Dynamic Overlay Canvas
+    function CameraTile({ camera, metadata, isOnline, onToggle, onDelete }) {
+      const canvasRef = useRef(null);
 
-      const player = document.getElementById('result-video-player');
-      if (data.video_url) {
-        player.src = data.video_url;
-        document.getElementById('download-video-btn').href = data.download_url || data.video_url;
-      }
-      document.getElementById('video-results').scrollIntoView({ behavior: 'smooth' });
+      // Draw real-time bounding boxes on canvas overlay
+      useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        if (!metadata || !metadata.persons) return;
+
+        // Render Person bounding boxes
+        metadata.persons.forEach(p => {
+          if (!p.bbox || p.bbox.length < 4) return;
+          const [bx, by, bw, bh] = p.bbox;
+
+          // Scale coordinates if canvas resolution differs from 640x480
+          const scaleX = canvas.width / 640;
+          const scaleY = canvas.height / 480;
+          const rx = bx * scaleX;
+          const ry = by * scaleY;
+          const rw = bw * scaleX;
+          const rh = bh * scaleY;
+
+          // Box border
+          ctx.lineWidth = 2.5;
+          ctx.strokeStyle = '#10b981'; // emerald green
+          ctx.strokeRect(rx, ry, rw, rh);
+
+          // Label badge
+          const label = `${p.global_person_id || ('Trk ' + p.track_id)} [${p.movement_direction || 'MOVING'}]`;
+          ctx.font = 'bold 11px JetBrains Mono, monospace';
+          const textWidth = ctx.measureText(label).width;
+
+          ctx.fillStyle = '#10b981';
+          ctx.fillRect(rx, Math.max(0, ry - 18), textWidth + 8, 18);
+
+          ctx.fillStyle = '#070b14';
+          ctx.fillText(label, rx + 4, Math.max(13, ry - 5));
+        });
+
+        // Render Face bounding boxes (Cyan)
+        if (metadata.faces) {
+          metadata.faces.forEach(f => {
+            if (!f.bbox || f.bbox.length < 4) return;
+            const [fx, fy, fw, fh] = f.bbox;
+            const scaleX = canvas.width / 640;
+            const scaleY = canvas.height / 480;
+            const rx = fx * scaleX;
+            const ry = fy * scaleY;
+            const rw = fw * scaleX;
+            const rh = fh * scaleY;
+
+            ctx.lineWidth = 1.8;
+            ctx.strokeStyle = '#06b6d4'; // cyan
+            ctx.strokeRect(rx, ry, rw, rh);
+
+            const faceLabel = `Face ${(f.confidence * 100).toFixed(0)}%`;
+            ctx.font = '9px JetBrains Mono, monospace';
+            const tw = ctx.measureText(faceLabel).width;
+            ctx.fillStyle = 'rgba(6, 182, 212, 0.85)';
+            ctx.fillRect(rx, Math.max(0, ry - 14), tw + 6, 14);
+            ctx.fillStyle = '#070b14';
+            ctx.fillText(faceLabel, rx + 3, Math.max(10, ry - 3));
+          });
+        }
+      }, [metadata]);
+
+      const fps = metadata.fps !== undefined ? metadata.fps : (camera.fps || 0.0);
+      const detectionCount = metadata.detection_count !== undefined ? metadata.detection_count : (camera.detection_count || 0);
+
+      return (
+        <div className="bg-[#0d1527] border border-[#1e2f56] rounded-2xl overflow-hidden shadow-xl flex flex-col transition hover:border-gray-500">
+          {/* Tile Header */}
+          <div className="px-4 py-3 bg-[#14203d]/70 border-b border-[#1e2f56] flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className={`w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'}`}></span>
+              <div>
+                <span className="font-mono font-bold text-sm text-white">{camera.camera_id}</span>
+                <span className="text-xs text-gray-400 ml-2">({camera.name})</span>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded-full bg-[#1e2f56] text-blue-300">
+                {camera.type}
+              </span>
+              <button
+                onClick={onDelete}
+                className="text-gray-400 hover:text-rose-400 text-xs px-1 cursor-pointer transition"
+                title="Delete Camera"
+              >
+                🗑️
+              </button>
+            </div>
+          </div>
+
+          {/* Video Container with Live Feed & HTML5 Canvas Overlay */}
+          <div className="relative aspect-video bg-[#070b14] flex items-center justify-center overflow-hidden">
+            {isOnline ? (
+              <div className="w-full h-full relative flex items-center justify-center bg-black">
+                {/* Live Camera MJPEG Video Stream */}
+                <img
+                  src={`/cameras/${camera.camera_id}/feed`}
+                  alt={camera.name}
+                  className="w-full h-full object-contain"
+                  onError={(e) => {
+                    setTimeout(() => {
+                      if (e.target) e.target.src = `/cameras/${camera.camera_id}/feed?t=${Date.now()}`;
+                    }, 2000);
+                  }}
+                />
+                {/* Real-time Dynamic Canvas Overlay */}
+                <canvas
+                  ref={canvasRef}
+                  width={640}
+                  height={480}
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                />
+              </div>
+            ) : (
+              <div className="text-center text-gray-400 font-mono text-xs p-6">
+                <div className="text-3xl mb-1">🔌</div>
+                <div className="text-rose-400 font-semibold text-sm">Camera Offline / Disconnected</div>
+                <div className="text-[11px] mt-1 text-gray-400">{camera.location}</div>
+                <div className="text-[10px] mt-2 text-gray-500 font-mono truncate max-w-xs">{camera.stream_url}</div>
+                <button
+                  onClick={onToggle}
+                  className="mt-3 bg-blue-600 hover:bg-blue-500 text-white px-3 py-1.5 rounded-lg text-xs font-semibold transition shadow-md shadow-blue-600/20"
+                >
+                  ▶ Start Stream
+                </button>
+              </div>
+            )}
+
+            {/* Top-Right Live Stats Overlay */}
+            {isOnline && (
+              <div className="absolute top-2 right-2 flex items-center gap-2 font-mono text-[10px]">
+                <span className="bg-black/75 backdrop-blur text-emerald-400 px-2 py-0.5 rounded border border-emerald-950">
+                  {fps.toFixed(1)} FPS
+                </span>
+                <span className="bg-black/75 backdrop-blur text-blue-400 px-2 py-0.5 rounded border border-blue-950">
+                  {detectionCount} Persons
+                </span>
+              </div>
+            )}
+          </div>
+
+
+          {/* Tile Footer Controls */}
+          <div className="px-4 py-2.5 bg-[#0d1527] border-t border-[#1e2f56] flex items-center justify-between text-xs font-mono">
+            <span className="text-gray-400 truncate max-w-[180px]">{camera.location}</span>
+            <button
+              onClick={onToggle}
+              className={`px-3 py-1 rounded-lg font-semibold transition cursor-pointer ${
+                isOnline
+                  ? 'bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800'
+                  : 'bg-emerald-950/60 hover:bg-emerald-900 text-emerald-300 border border-emerald-800'
+              }`}
+            >
+              {isOnline ? '⏹ Stop' : '▶ Start'}
+            </button>
+          </div>
+        </div>
+      );
     }
 
-    function downloadMetadataJson() {
-      if (!processedVideoData) return;
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(processedVideoData, null, 2));
-      const dl = document.createElement('a');
-      dl.setAttribute("href", dataStr);
-      dl.setAttribute("download", `face_metadata_${Date.now()}.json`);
-      dl.click();
-    }
-
-    // Initialize camera indices on page load
-    refreshCameras();
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
 </body>
 </html>

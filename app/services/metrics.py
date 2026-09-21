@@ -14,6 +14,7 @@ class MetricsAccumulator:
     input_fps: float = 0.0
     processed_frames: int = 0
     detected_faces: int = 0
+    detected_persons: int = 0
     total_inference_ms: float = 0.0
     total_latency_ms: float = 0.0
     total_confidence: float = 0.0
@@ -28,9 +29,11 @@ class MetricsAccumulator:
         latency_ms: float,
         confidences: list[float],
         qualities: list[float],
+        person_count: int = 0,
     ) -> None:
         self.processed_frames += 1
         self.detected_faces += face_count
+        self.detected_persons += person_count
         self.total_inference_ms += inference_ms
         self.total_latency_ms += latency_ms
         self.total_confidence += sum(confidences)
@@ -50,6 +53,7 @@ class MetricsAccumulator:
             average_latency_ms=round(self.total_latency_ms / frame_count, 3),
             processed_frames=self.processed_frames,
             detected_faces=self.detected_faces,
+            detected_persons=self.detected_persons,
             average_confidence=round(self.total_confidence / face_count, 4) if self.detected_faces else 0.0,
             average_quality_score=round(self.total_quality_score / face_count, 4) if self.detected_faces else 0.0,
             execution_mode=self.execution_mode,

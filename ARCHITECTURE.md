@@ -3,18 +3,17 @@
 ## Pipeline
 
 ```text
-Video Source
-  -> Ingestion
-  -> Frame Sampling
-  -> Preprocessing
-  -> Face Detector
-  -> Confidence Filter
-  -> Minimum Size Check
-  -> Face Quality Assessment
-  -> Optional Temporary Track Association
-  -> Metadata
-  -> Visualization
-  -> FastAPI / WebSocket
+Video Source (Webcam / RTSP / MP4)
+  -> Ingestion & Sampling
+  -> Person Detector (YOLOv8 ONNX / OpenCV HOG fallback)
+  -> Continuous Person Tracker (Motion-aware IoU / Kalman)  *TRACKS WITHOUT FACE*
+  -> Face Detector (YuNet / TinyFaceNet)
+  -> Face Quality Assessment & Landmarks
+  -> Anatomical Face-to-Person Association (Upper-body geometry)
+  -> Person Re-ID Feature Extractor (Spatial HSV Stripes + Deep CNN)
+  -> Central GlobalPersonRegistry (Cross-Camera Identity & Transition Tracking)
+  -> Drawer / Visualization Overlay
+  -> FastAPI / WebSockets / MultiCameraManager
 ```
 
 ## Components
@@ -25,19 +24,23 @@ Video Source
 
 `app/video/sampling.py` limits processed frames to approximately `PROCESS_FPS`.
 
-`app/detection/base.py` defines `FaceDetector`. `app/detection/yunet.py` implements YuNet through OpenCV `FaceDetectorYN`. Future SCRFD or RetinaFace implementations should return the same `RawFaceDetection` objects.
+`app/detection/person_detector.py` defines `PersonDetector`, implementing `YoloPersonDetector` (YOLOv8 ONNX via ONNX Runtime / OpenCV DNN) and `HOGPersonDetector` (OpenCV fallback).
 
-`app/detection/postprocess.py` applies confidence filtering, bounding-box clamping, and minimum-size filtering.
+`app/detection/yunet.py` implements YuNet through OpenCV `FaceDetectorYN`.
 
-`app/quality/` computes blur, brightness, size, and a normalized heuristic usability score. The score is not a biometric quality guarantee.
+`app/tracking/person_tracker.py` implements `PersonTracker`, maintaining continuous person identities even when the face is occluded, turned away, or invisible.
 
-`app/tracking/` contains optional temporary IoU tracking. Track IDs are processing-local and do not identify people.
+`app/association/person.py` implements `PersonFaceAssociator`, linking detected faces to person tracks using anatomical upper-body geometry.
 
-`app/association/person.py` prepares future face-to-person association using geometry. The MVP does not require person detection.
+`app/reid/extractor.py` extracts 256-D L2-normalized appearance embeddings (spatial HSV stripes + convolutional features).
 
-`app/schemas/face.py` defines Pydantic metadata contracts used by API and WebSocket payloads.
+`app/reid/registry.py` provides `GlobalPersonRegistry`, matching persons across different camera streams using cosine similarity and logging cross-camera handoffs.
 
-`app/visualization/drawer.py` draws bounding boxes, face IDs, confidence, quality, track IDs, camera ID, face count, and FPS.
+`app/services/multi_camera_manager.py` manages multiple concurrent camera streams and synchronizes them with the central `GlobalPersonRegistry`.
+
+`app/schemas/face.py` defines Pydantic metadata contracts for persons, faces, transitions, and camera streams.
+
+`app/visualization/drawer.py` draws person bounding boxes, track IDs, global IDs, face boxes, and `[Face Hidden - Tracking Person]` status badge.
 
 `app/services/face_service.py` coordinates the complete pipeline for images, frames, and MP4 files.
 

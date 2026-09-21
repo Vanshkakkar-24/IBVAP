@@ -10,3 +10,4 @@ outputs/*
 !outputs/.gitkeep
 models/*.onnx
 !models/.gitkeep
+tests/

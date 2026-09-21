@@ -11,14 +11,19 @@ from uuid import uuid4
 import cv2
 import numpy as np
 
+from app.association.person import PersonFaceAssociator
 from app.config import Settings
 from app.detection.base import FaceDetector, ModelLoadError
+from app.detection.person_detector import PersonDetector, create_person_detector
 from app.detection.postprocess import clamp_detection_to_frame, confidence_filter, minimum_size_filter
 from app.detection.yunet import YuNetDetector
 from app.quality.quality_score import FaceQualityAssessor, QualityConfig
-from app.schemas.face import BoundingBox, FaceDetection, FaceDetectionFrame, MetricsSnapshot
+from app.reid.extractor import PersonReIDExtractor
+from app.reid.registry import GlobalPersonRegistry
+from app.schemas.face import BoundingBox, FaceDetection, FaceDetectionFrame, MetricsSnapshot, PersonDetection
 from app.services.metrics import MetricsAccumulator
 from app.tracking.base import FaceTracker
+from app.tracking.person_tracker import PersonTracker, PersonTrackState
 from app.tracking.tracker import IoUFaceTracker
 from app.video.sampling import FrameSampler
 from app.video.video_file import VideoFileReader
@@ -35,10 +40,24 @@ class FaceDetectionService:
         settings: Settings,
         detector: FaceDetector | None = None,
         tracker: FaceTracker | None = None,
+        person_detector: PersonDetector | None = None,
+        global_registry: GlobalPersonRegistry | None = None,
     ) -> None:
         self.settings = settings
         self._detector = detector
+        self._person_detector = person_detector
         self.tracker = tracker if tracker is not None else IoUFaceTracker()
+        self.person_tracker = PersonTracker(
+            iou_threshold=0.30,
+            max_missed=settings.reid_max_missed_frames,
+        )
+        self.associator = PersonFaceAssociator()
+        self.reid_extractor = PersonReIDExtractor()
+        self.global_registry = (
+            global_registry
+            if global_registry is not None
+            else GlobalPersonRegistry(similarity_threshold=settings.reid_similarity_threshold)
+        )
         self.quality = FaceQualityAssessor(
             QualityConfig(
                 blur_threshold=settings.blur_threshold,
@@ -55,6 +74,17 @@ class FaceDetectionService:
             execution_mode=settings.execution_provider,
             detector="YuNet",
         )
+
+    @property
+    def person_detector(self) -> PersonDetector:
+        if self._person_detector is None:
+            self._person_detector = create_person_detector(
+                backend=self.settings.person_detector_backend,
+                model_path=self.settings.person_model_path,
+                confidence_threshold=self.settings.person_confidence_threshold,
+                execution_provider=self.settings.execution_provider,
+            )
+        return self._person_detector
 
     @property
     def detector(self) -> FaceDetector:
@@ -88,6 +118,12 @@ class FaceDetectionService:
 
     def ensure_ready(self) -> None:
         _ = self.detector
+        if self.settings.enable_person_detection:
+            _ = self.person_detector
+
+    def reset_trackers(self) -> None:
+        self.tracker.reset()
+        self.person_tracker.reset()
 
     def process_frame(
         self,
@@ -98,19 +134,42 @@ class FaceDetectionService:
         source_type: str | None = None,
     ) -> FaceDetectionFrame:
         start = time.perf_counter()
+        cam_id = camera_id or self.settings.camera_id
         if frame is None or not isinstance(frame, np.ndarray) or frame.size == 0:
             latency_ms = (time.perf_counter() - start) * 1000
-            self.metrics.update(0, 0.0, latency_ms, [], [])
+            self.metrics.update(0, 0.0, latency_ms, [], [], person_count=0)
             return FaceDetectionFrame(
-                camera_id=camera_id or self.settings.camera_id,
+                camera_id=cam_id,
                 frame_id=frame_id,
                 faces=[],
+                persons=[],
                 input_fps=input_fps,
                 processing_fps=self.metrics.snapshot().processing_fps,
                 source_type=source_type,
             )
 
         height, width = frame.shape[:2]
+
+        # 1. Person Detection & Tracking (continuous tracking even if face is not visible)
+        tracked_persons: list[PersonTrackState] = []
+        if self.settings.enable_person_detection:
+            try:
+                raw_persons = self.person_detector.detect(frame)
+                if self.settings.enable_person_tracking:
+                    tracked_persons = self.person_tracker.update(raw_persons)
+                else:
+                    tracked_persons = [
+                        PersonTrackState(
+                            track_id=idx + 1,
+                            bbox=BoundingBox(x=p.bbox[0], y=p.bbox[1], width=p.bbox[2], height=p.bbox[3]),
+                            confidence=p.confidence,
+                        )
+                        for idx, p in enumerate(raw_persons)
+                    ]
+            except Exception as exc:
+                logger.warning("Person detection error: %s", exc)
+
+        # 2. Face Detection & Postprocessing
         inference_start = time.perf_counter()
         raw_faces = self.detector.detect(frame)
         inference_ms = (time.perf_counter() - inference_start) * 1000
@@ -140,6 +199,34 @@ class FaceDetectionService:
         if self.settings.enable_tracking:
             faces = self.tracker.update(faces)
 
+        # 3. Person-Face Association & Cross-Camera Re-ID
+        persons: list[PersonDetection] = []
+        if self.settings.enable_person_detection and tracked_persons:
+            # Associate visible faces to person tracks (if face is hidden, track persists with face=None)
+            self.associator.attach_faces_to_persons(tracked_persons, faces)
+
+            for track in tracked_persons:
+                if self.settings.enable_reid:
+                    feat = self.reid_extractor.extract(frame, track.bbox)
+                    track.reid_embedding = feat
+                    gid, _, _ = self.global_registry.match_or_register(
+                        cam_id, track.track_id, feat, has_face=track.has_face
+                    )
+                    track.global_person_id = gid
+
+                persons.append(
+                    PersonDetection(
+                        person_id=f"person_{track.track_id:03d}",
+                        track_id=track.track_id,
+                        global_person_id=track.global_person_id,
+                        bbox=track.bbox,
+                        confidence=round(track.confidence, 4),
+                        has_face=track.has_face,
+                        face=track.face,
+                        reid_embedding=track.reid_embedding,
+                    )
+                )
+
         latency_ms = (time.perf_counter() - start) * 1000
         self.metrics.update(
             face_count=len(faces),
@@ -147,11 +234,13 @@ class FaceDetectionService:
             latency_ms=latency_ms,
             confidences=[face.confidence for face in faces],
             qualities=[face.quality.score for face in faces],
+            person_count=len(persons),
         )
         metadata = FaceDetectionFrame(
-            camera_id=camera_id or self.settings.camera_id,
+            camera_id=cam_id,
             frame_id=frame_id,
             faces=faces,
+            persons=persons,
             input_fps=input_fps,
             processing_fps=self.metrics.snapshot().processing_fps,
             source_type=source_type,
@@ -179,7 +268,7 @@ class FaceDetectionService:
         writer: cv2.VideoWriter | None = None
         output_annotated = self.settings.save_annotated_output if output_annotated is None else output_annotated
         self._start_metrics(reader.fps)
-        self.tracker.reset()
+        self.reset_trackers()
 
         try:
             sampler = FrameSampler(reader.fps, self.settings.process_fps)

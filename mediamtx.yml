@@ -1,0 +1,37 @@
+# MediaMTX Configuration for IBVAP Multi-Camera Video Streaming
+# Enables RTSP ingestion for Python AI Workers and WebRTC playback for the React Dashboard.
+
+logLevel: info
+logDestinations: [stdout]
+
+# RTSP Server configuration (Consumed by Python AI Engine)
+rtsp: yes
+protocols: [tcp, udp]
+rtspAddress: :8554
+rtspsAddress: :8322
+
+# RTMP Server configuration (For mobile camera streaming apps e.g. Larix Broadcaster)
+rtmp: yes
+rtmpAddress: :1935
+
+# WebRTC / WHEP Server configuration (Consumed by React Dashboard for low-latency live video)
+webrtc: yes
+webrtcAddress: :8889
+webrtcEncryption: no
+webrtcAllowOrigins: ["*"]
+
+# HLS fallback server
+hls: yes
+hlsAddress: :8888
+
+# API server for inspecting active streams
+api: yes
+apiAddress: :9997
+
+# Dynamic paths for all camera feeds
+paths:
+  all_others:
+    # Allow clients to publish and read any stream name dynamically
+    # Example publish from mobile: rtsp://localhost:8554/cam2
+    # Example read from Python:   rtsp://localhost:8554/cam2
+    # Example WebRTC in React:    http://localhost:8889/cam2/whep

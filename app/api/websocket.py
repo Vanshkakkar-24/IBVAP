@@ -50,3 +50,16 @@ async def face_detection_websocket(websocket: WebSocket) -> None:
         logger.warning("WebSocket disconnected unexpectedly: %s", exc)
         manager.disconnect(websocket)
 
+
+@router.websocket("/ws/live")
+async def live_websocket(websocket: WebSocket) -> None:
+    await manager.connect(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
+    except Exception as exc:
+        logger.warning("Live WebSocket disconnected unexpectedly: %s", exc)
+        manager.disconnect(websocket)
+

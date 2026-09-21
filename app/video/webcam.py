@@ -16,7 +16,7 @@ import sys
 logger = logging.getLogger(__name__)
 
 
-def list_available_cameras(max_to_test: int = 4) -> list[int]:
+def list_available_cameras(max_to_test: int = 2) -> list[int]:
     """Scan and return indices of accessible cameras on the system."""
     available = []
     # Temporarily set log level to suppress harmless backend probing warnings
@@ -24,7 +24,8 @@ def list_available_cameras(max_to_test: int = 4) -> list[int]:
     os.environ["OPENCV_LOG_LEVEL"] = "FATAL"
     try:
         for idx in range(max_to_test):
-            cap = cv2.VideoCapture(idx)
+            backend = cv2.CAP_DSHOW if sys.platform.startswith("win") else 0
+            cap = cv2.VideoCapture(idx, backend) if backend else cv2.VideoCapture(idx)
             if cap.isOpened():
                 ret, frame = cap.read()
                 if ret and frame is not None and frame.size > 0:
@@ -52,10 +53,8 @@ class WebcamReader:
             self.capture = cv2.VideoCapture(camera_index)
 
         if not self.capture.isOpened():
-            available = list_available_cameras()
-            avail_msg = f"Available camera indices detected: {available}" if available else "No working cameras detected."
             raise VideoOpenError(
-                f"Could not open webcam index {camera_index}. {avail_msg} "
+                f"Could not open webcam index {camera_index}. "
                 "Ensure camera permissions are enabled and no other application (Zoom/Teams/Browser) is using it."
             )
         self.fps = float(self.capture.get(cv2.CAP_PROP_FPS) or 30.0)
