@@ -1,0 +1,6 @@
+{
+  "expect_event": true,
+  "event_type": "NIGHT_INTRUSION",
+  "severity": "CRITICAL",
+  "reason_codes_include": ["NIGHT", "ZONE_BREACH"]
+}

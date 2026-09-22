@@ -1,0 +1,12 @@
+{
+  "description": "SCN-004: A person walks steadily at 23:00 and crosses into a Module-8 configured restricted zone partway through the track.",
+  "camera_id": "CAM-001",
+  "updates": [
+    {"track_id": 42, "object_type": "person", "timestamp": "2026-01-01T23:00:00", "bbox": [100, 380, 140, 420], "confidence": 0.91, "zone_breach": false},
+    {"track_id": 42, "object_type": "person", "timestamp": "2026-01-01T23:00:00.750", "bbox": [115, 380, 155, 420], "confidence": 0.92, "zone_breach": false},
+    {"track_id": 42, "object_type": "person", "timestamp": "2026-01-01T23:00:01.500", "bbox": [130, 380, 170, 420], "confidence": 0.90, "zone_breach": false},
+    {"track_id": 42, "object_type": "person", "timestamp": "2026-01-01T23:00:02.250", "bbox": [150, 380, 190, 420], "confidence": 0.93, "zone_breach": true,  "zone_id": "ZONE-01"},
+    {"track_id": 42, "object_type": "person", "timestamp": "2026-01-01T23:00:03.000", "bbox": [170, 380, 210, 420], "confidence": 0.94, "zone_breach": true,  "zone_id": "ZONE-01"},
+    {"track_id": 42, "object_type": "person", "timestamp": "2026-01-01T23:00:03.750", "bbox": [190, 380, 230, 420], "confidence": 0.95, "zone_breach": true,  "zone_id": "ZONE-01"}
+  ]
+}
